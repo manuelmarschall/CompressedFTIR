@@ -1,12 +1,6 @@
 import numpy as np
 from scipy.sparse import load_npz
-
-def stop_at_exception(ex, err_str=None):
-    if err_str is not None:
-        print(err_str)
-    print(ex)
-    print(" exit!")
-    exit()
+from compressedftir.utils import stop_at_exception
 
 def load_npz_file(filepath):
     """
@@ -48,7 +42,21 @@ def load_npy_file(filepath):
         stop_at_exception(exception, "The file contains an object array, but allow_pickle=False given")
         
 def load_data_file(filepath, format_hint=None):
+    """
+    Main loader function that distributes the loading according to filepath and format_hint
 
+    Arguments:
+        filepath {str} -- path to file including file extension
+
+    Keyword Arguments:
+        format_hint {str} -- additional information which format is used (default: {None})
+
+    Raises:
+        ValueError: Unknown file type
+
+    Returns:
+        array-like -- sample data from file
+    """
     # TODO: add csv AFM data
     assert isinstance(filepath, str)
     if format_hint is None:

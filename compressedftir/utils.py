@@ -5,6 +5,36 @@ from scipy.sparse import kron as spkron
 from scipy.sparse import eye as speye
 from scipy.sparse.linalg import spsolve
 
+def stop_at_exception(ex, err_str=None):
+    """
+    Small wrapper for exceptions and termination
+
+    Arguments:
+        ex {Exception} -- raised by code
+
+    Keyword Arguments:
+        err_str {str} -- String to write before expection and exit (default: {None})
+    """
+    if err_str is not None:
+        print(err_str)
+    print(ex)
+    print(" exit!")
+    exit()
+
+
+def sum_sq_nnz(nnz, arr):
+    """
+    Returns the sum of squares using non zero mapping
+
+    Arguments:
+        nnz {list} -- list of non-zero indices
+        arr {np.array} -- 2D array
+
+    Returns:
+        float -- $\sum_{(i, j)\in\Omega} A[i, j]^2$
+    """
+
+    return np.sum([arr[x, y]**2 for (x, y) in zip(*nnz)])
 
 
 def build_neighbour_matrix(n):
@@ -51,6 +81,10 @@ def build_neighbour_matrix(n):
     Kcol_A_py[0, 0] = 3
     return Kcol_A_py
 
+def relative_residual(Xk, Xk1):
+    return np.linalg.norm(Xk - Xk1)/np.linalg.norm(Xk)
+
+
 def own_block_diag(mats, format='coo', dtype=None):
     dtype = np.dtype(dtype)
     row = []
@@ -74,75 +108,7 @@ def own_block_diag(mats, format='coo', dtype=None):
         c_idx = c_idx + ncols
     return coo_matrix((data, (row, col)), dtype=dtype).asformat(format)
 
-def updateU(_V, Xomega, curr_r, nnz, lmbA=0.0, lap=None):
-    hlp = []
-    _n, _m = Xomega.shape
-    VY = np.zeros((curr_r, _n))
-    zm = csr_matrix((curr_r, curr_r))
-    for k in range(_n):
-        ind = nnz[k]
-        if sum(ind)>0:
-            VO = _V[:, ind]
-            hlp.append(csr_matrix(np.dot(VO, VO.T)))
-            VY[:, k] = np.dot(Xomega[k, ind], VO.T)
-        else:
-            hlp.append(zm)
-    H = own_block_diag(hlp, format="csr")
-    if lap is not None:
-        H = H + lmbA*lap
-    return spsolve(H, VY.ravel(order="F")).reshape((curr_r, _n), order="F").T
 
-def updateV(_A, Xomega, curr_r, nnz, lmb=0.0, lap=None):
-    hlp = []
-    _n, _m = Xomega.shape
-    AY = np.zeros((curr_r, _m))
-    zm = csr_matrix((curr_r, curr_r))
-    for k in range(_m):
-        ind = nnz[k]
-        AO = _A[ind, :]
-        hlp.append(csr_matrix(np.dot(AO.T, AO)))
-        AY[:, k] = np.dot(Xomega[ind, k].T, AO)
-        
-    if lap is None:
-        H = own_block_diag(hlp, format="csr")
-    else:
-        H = own_block_diag(hlp, format="csr") + lmb*lap
-
-    return spsolve(H, AY.ravel(order="F")).reshape((curr_r, _m), order="F")
-
-def reslocal(Xk, Xk1):
-    return np.linalg.norm(Xk - Xk1)/np.linalg.norm(Xk1)
-def resglobal(Xk, Xomega):
-    return np.linalg.norm(Xomega-Xk)/np.linalg.norm(Xomega)
-def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V):
-    # initialize using svd. return (n, r)x(r,r)x(r,m)
-    W, Lambda, Z = svd(Xomega, full_matrices=False)
-    # usually, the svd rank is larger than desired -> crop
-    W = W[:, :r]; Lambda = Lambda[:r]; Z = Z[:r, :]
-
-    U = W*Lambda**(0.5)          # shape (n, r)
-    V = (Z.T*Lambda**(0.5)).T    # shape (r, m)
-    resL = np.infty
-    resG = 0
-    t = 0
-    Xt = np.dot(U, V)
-    while t < T and resL > resG*tau:
-        Xt_old = Xt
-        U = updateU(V, Xomega, r, nnz_Z0_V, l_regu, lapU)
-        V = updateV(U, Xomega, r, nnz_Z0_U, l_regu, lapV)
-        Xt = np.dot(U, V)
-        resL = reslocal(Xt, Xt_old)
-        resG = resglobal(Xt, Xomega)
-        print("it: {}/{}, local res: {}, global res: {}".format(t+1, T, resL, resG))
-        t = t+1
-    retval = {
-        "Xh": Xt,
-        "U": U,
-        "V": V,
-        "resL": resL,
-        "resG": resG
-        }
-    return retval
 
 def get_regularizer(n, m, r):
     Kcol_A = csr_matrix(build_neighbour_matrix(int(n)))
@@ -167,3 +133,53 @@ def get_nnz_indices(Xomega):
         nnz_Z0_V.append(np.nonzero(Xomega[lia, :])[0])
 
     return nnz_Z0_U, nnz_Z0_V
+
+def serialize_coo_matrix(spmat):
+    """
+    Generate a json serializeable object from a sparse (coo) matrix
+
+    Arguments:
+        spmat {scipy.sparse.coo_matrix} -- sparse matrix in coordinate format
+    """
+    # TODO: get i, j, v and return list[i, j, v]
+    raise NotImplemented
+
+def curvature_lcurve(lx, ly):
+    """
+    Computes the curvature function of an l-curve
+    TODO: calculate by hand and write in comment
+
+    Arguments:
+        lx {list} -- residual norms || Y - UV ||_\Omega
+        ly {list} -- regularizer norms || lapU U || + || lapV V ||
+
+    Returns:
+        list -- discrete curvature function
+    """
+    dx = np.gradient(lx)
+    dy = np.gradient(ly, dx)
+    d2y = np.gradient(dy, dx)
+    k = np.abs(d2y)/(1+dy**2)**(1.5)
+    return k
+    
+def get_corner_node(lcurve):
+    """
+    Computes the optimal argument of a given l-curve.
+    Note: Only approximately and discrete. 
+    TODO: More elaborate using interpolation/extrapolation and 
+          analytical differentiation.
+          Or implement https://arxiv.org/abs/1608.04571
+
+    Arguments:      
+        lcurve {list} -- l-curve [[x1, y1], [x2, y2], ...]
+
+    Returns:
+        int -- Optimal argument that maximizes curvature
+    """
+    lx, ly = [], []
+    for lia in range(len(lcurve)):
+        lx.append(lcurve[lia][0])
+        ly.append(lcurve[lia][1])
+    k = curvature_lcurve(lx, ly)
+    l_opt = np.argmax(k)
+    return l_opt
