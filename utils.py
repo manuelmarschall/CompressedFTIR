@@ -1,44 +1,11 @@
 import numpy as np
 from scipy.linalg import svd
-from scipy.sparse import (csr_matrix, coo_matrix, issparse, load_npz)
+from scipy.sparse import (csr_matrix, coo_matrix, issparse)
 from scipy.sparse import kron as spkron
 from scipy.sparse import eye as speye
-from scipy.sparse.linalg import (spsolve)
+from scipy.sparse.linalg import spsolve
 
-def load_data_file(filepath):
-    # TODO: add csv AFM data
-    assert isinstance(filepath, str)
-    # check for file suffix. Can be done more elaborate
-    if np.char.endswith(filepath, ".npz"):
-        # scipy sparse format or numpy compressed
-        try:
-            retval = load_npz(filepath)
-        except IOError:
-            try:
-                retval = np.load(filepath)
-            except IOError as exception:
-                print("File does not exists, or ends with .npz and is neither a scipy sparse matrix or in compressed numpy format.")
-                print(exception)
-                print(" exit!")
-                exit()
-        
-    elif np.char.endswith(filepath, ".npy"):
-        # numpy matrix format
-        try:
-            retval = np.load(filepath)
-        except IOError as exception:
-            print("File does not exists or cannot be read")
-            print(exception)
-            print(" exit!")
-            exit()
-        except ValueError as exception:
-            print("The file contains an object array, but allow_pickle=False given")
-            print(exception)
-            print(" exit!")
-            exit()
-    else:
-        raise ValueError("Unknown suffix. exit!")
-    return retval
+
 
 def build_neighbour_matrix(n):
     import numpy as np
@@ -91,7 +58,7 @@ def own_block_diag(mats, format='coo', dtype=None):
     data = []
     r_idx = 0
     c_idx = 0
-    for ia, a in enumerate(mats):
+    for a in mats:
         if issparse(a):
             a = a.tocsr()
         else:
@@ -148,7 +115,11 @@ def reslocal(Xk, Xk1):
 def resglobal(Xk, Xomega):
     return np.linalg.norm(Xomega-Xk)/np.linalg.norm(Xomega)
 def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V):
+    # initialize using svd. return (n, r)x(r,r)x(r,m)
     W, Lambda, Z = svd(Xomega, full_matrices=False)
+    # usually, the svd rank is larger than desired -> crop
+    W = W[:, :r]; Lambda = Lambda[:r]; Z = Z[:r, :]
+
     U = W*Lambda**(0.5)          # shape (n, r)
     V = (Z.T*Lambda**(0.5)).T    # shape (r, m)
     resL = np.infty

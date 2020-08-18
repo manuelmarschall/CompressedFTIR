@@ -1,21 +1,23 @@
 import numpy as np
 from scipy.sparse import load_npz
 from utils import (lr_recon_single, get_regularizer, get_nnz_indices)
+from datareader import load_data_file
 import matplotlib.pyplot as plt
 
 filepath = "Xomega_test.npz"            # sparse samples dataset
 
-Xomega = load_npz(filepath)             # assumes scipy sparse matrix
+Xomega = load_data_file(filepath)       # Get data from file. 
 
 r = 5                                   # desired rank parameter
 tau = 1e-5                              # convergence tolerance
 lam = np.logspace(-4, -1, num=10)       # L-curve points
-max_iter = 50                          # maximal number of local interation
+max_iter = 50                           # maximal number of local interation
 
 Xh = dict()
 res_l = np.zeros(len(lam))
 res_g = np.zeros(len(lam))
 lcurve = dict()
+
 
 # data-preprocessing
 Z0 = Xomega.toarray()
@@ -29,10 +31,10 @@ def sum_sq_nnz(nnz, arr):
 y2nrm = sum_sq_nnz(nnz, Z0)
 
 # solver preparation
-lapU, lapV = get_regularizer(np.sqrt(Xomega.shape[0]), Xomega.shape[1], r)
-nnzU, nnzV = get_nnz_indices(Xomega)
+lapU, lapV = get_regularizer(np.sqrt(Z0.shape[0]), Z0.shape[1], r)
+nnzU, nnzV = get_nnz_indices(Z0)
 solver_info = {
-    "Xomega": Xomega,
+    "Xomega": Z0,
     "r": r,
     "T": max_iter,
     "tau": tau,
