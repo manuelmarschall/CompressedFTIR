@@ -1,6 +1,35 @@
 import numpy as np
 from scipy.sparse import load_npz
 from compressedftir.utils import stop_at_exception
+import os
+
+def load_afmir_csv(filepath):
+    t, x, y = [], [], []
+    values = []
+    with open(filepath, "r") as fp:
+        lines = fp.readlines()
+        for lia, line in enumerate(lines):
+            line_arr = str.split(line, ",")
+            if len(line_arr) < 3:
+                # this row seems to be empty
+                continue
+            if lia == 0:
+                # get amplitude values (in mV)
+                # line_arr[0] and line_arr[1] should be empty in first row
+                assert len(line_arr[0]) == 0 and len(line_arr[1]) == 0
+                # remaining line contains the values
+                for lib in range(2, len(line_arr)):
+                    t.append(float(line_arr[lib]))
+                continue
+            loc_values = []
+            x.append(float(line_arr[0]))
+            y.append(float(line_arr[1]))
+            for lib in range(2, len(line_arr)):
+                loc_values.append(float(line_arr[lib]))
+            values.append(loc_values)
+    nx = len(np.unique(np.array(x)))
+    ny = len(np.unique(np.array(y)))
+    return np.fliplr(np.array(values).reshape([ny, nx, len(t)]).transpose([1, 0, 2]))
 
 def load_npz_file(filepath):
     """
@@ -53,12 +82,19 @@ def load_data_file(filepath, format_hint=None):
 
     Raises:
         ValueError: Unknown file type
+        IOError   : File does not exist
 
     Returns:
         array-like -- sample data from file
     """
     # TODO: add csv AFM data
-    assert isinstance(filepath, str)
+    if not isinstance(filepath, str):
+        raise ValueError("filepath should be a string")
+    if not os.path.exists(filepath):
+        raise IOError("file does not exist: {}".format(filepath))
+
+    known_file_hints = ["afm-ir"]
+
     if format_hint is None:
         # check for file suffix, as no hint is given
         if np.char.endswith(filepath, ".npz"):
@@ -69,5 +105,13 @@ def load_data_file(filepath, format_hint=None):
             retval = load_npy_file(filepath)
         else:
             raise ValueError("Unknown file suffix. exit!")
-        return retval
-    
+    if format_hint == "afm-ir":
+        if np.char.endswith(filepath, ".csv"):
+            retval = load_afmir_csv(filepath)
+        elif np.char.endswith(filepath, ".txt"):
+            raise NotImplementedError(".txt conversion not implemented. Use .csv file.")
+        else:
+            raise ValueError("Unknown file suffix. exit!")
+    else:
+        raise ValueError("Unknown file_hint: {}\n chose from {}".format(file_hint, known_file_hints))
+    return retval
