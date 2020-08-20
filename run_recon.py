@@ -58,8 +58,8 @@ def runLeishmania_AFM_IR_test():
 
 
 if __name__ == "__main__":
-    # run2Dtest()
-    runLeishmania_AFM_IR_test()
+    run2Dtest()
+    # runLeishmania_AFM_IR_test()
 
     # The results are now stored in the defined 'exportpath' and can be read from disc
     # using json. 
