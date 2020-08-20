@@ -37,6 +37,19 @@ def sum_sq_nnz(nnz, arr):
     return np.sum([arr[x, y]**2 for (x, y) in zip(*nnz)])
 
 def neighbors(X, Y, x, y): 
+    """
+    returns a list of tuples containing all neighbor
+    of the vertex (x, y)
+
+    Arguments:
+        X {int} -- number of vertices in X direction
+        Y {int} -- number of vertices in Y direction
+        x {int} -- x position of vertex 0 <= x <= X
+        y {int} -- y position of vertex 0 <= y <= Y
+
+    Returns:
+        list -- neighbor of (x, y)
+    """
     return [(x2, y2) for x2 in range(x-1, x+2)
                             for y2 in range(y-1, y+2)
                             if (-1 < x < X and
@@ -47,9 +60,18 @@ def neighbors(X, Y, x, y):
 
 
 def neig_metric(u, v, X, Y):
-    '''
-    returns 2 if u = v, -1 if (u, v) are neighbors else 0
-    '''
+    """
+    Metric for neighbor vertices in a regular matrix graph
+
+    Arguments:
+        u {list} -- vertex 1
+        v {list} -- vertex 2
+        X {int} -- number of vertices in X direction
+        Y {int} -- number of vertices in Y direction
+
+    Returns:
+        int -- 2 if u = v, -1 if (u, v) are neighbors else 0
+    """
     
     neigu = neighbors(X, Y, u[0], u[1])
     if np.abs(u - v).sum() == 1:
@@ -62,7 +84,22 @@ def neig_metric(u, v, X, Y):
                 return -1
     return 0
     
-def build_neighbour_matrix(n, m):
+def build_neighbour_matrix(n, m, cache=True):
+    """
+    Generates a matrix of size (n*m x n*m) indicating the number of neighbor
+    of a pixel by calling neig_metric for every pixel/ vertex combination
+
+    Arguments:
+        n {int} -- number of vertices in x direction
+        m {int} -- number of vertices in y direction
+
+    Keyword Arguments:
+        cache {bool} -- flag to save and load an already computed matrix
+                        from a fixed but temporary directory (default: {True})
+
+    Returns:
+        numpy array -- neighbor matrix
+    """
     # if False:
     #     # this is faster but does only work for rectangular matrices
     #     import numpy as np
@@ -108,6 +145,13 @@ def build_neighbour_matrix(n, m):
     #     Kcol_A_py[0, 0] = 3
     #     return Kcol_A_py
 
+    if cache:
+        import os
+        if not os.path.exists("compFTIRtmp/neighborMat/"):  
+            os.makedirs("compFTIRtmp/neighborMat/")
+        curr_mat = "compFTIRtmp/neighborMat/{}{}".format(n,m)
+        if os.path.exists(curr_mat + ".npy"):
+            return np.load(curr_mat + ".npy")
     dim_list = [n, m]
     meshgrid = np.array(np.meshgrid(*[np.arange(ndim) for ndim in dim_list]))
     X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
@@ -115,13 +159,43 @@ def build_neighbour_matrix(n, m):
     for lia in range(n*m):
         for lib in range(n*m):
             dist[lia, lib] = neig_metric(X_grid[lia,:], X_grid[lib, :], *dim_list)
+    if cache:
+        np.save(curr_mat, dist)
+
     return dist
 
 def relative_residual(Xk, Xk1):
+    """
+    computes a relative residual of two matrices in the default norm
+    $$
+        || Xk - Xk1 || / || Xk ||
+    $$
+
+    Arguments:
+        Xk {array like} -- matrix 1
+        Xk1 {array like} -- matrix 2
+
+    Returns:
+        float -- relative residual
+    """
     return np.linalg.norm(Xk - Xk1)/np.linalg.norm(Xk)
 
 
 def own_block_diag(mats, format='coo', dtype=None):
+    """
+    create a block diagonal matrix in sparse format
+
+    Arguments:
+        mats {list} -- list of matrices
+
+    Keyword Arguments:
+        format {str} -- sparse format str (default: {'coo'})
+        dtype {str} -- force a specific format of the matrix values, 
+                       eg. np.complex (default: {None})
+
+    Returns:
+        scipy sparse matrix -- block diagonal sparse matrix
+    """
     dtype = np.dtype(dtype)
     row = []
     col = []
@@ -145,9 +219,9 @@ def own_block_diag(mats, format='coo', dtype=None):
     return coo_matrix((data, (row, col)), dtype=dtype).asformat(format)
 
 
-
 def get_regularizer(n, m, t, r):
-    print("get neighbor matrix")
+    print("get neighbor matrix. This might take a while.")
+    print("  (This will be speed tuned in later versions.)")
     Kcol_A = csr_matrix(build_neighbour_matrix(int(n), int(m)))
     print("neighbor matrix done")
     Kcol_B = speye(t)
@@ -200,7 +274,7 @@ def curvature_lcurve(lx, ly):
     k = np.abs(d2y)/(1+dy**2)**(1.5)
     return k
     
-def get_corner_node(lcurve):
+def get_corner_node(lcurve, debug=False):
     """
     Computes the optimal argument of a given l-curve.
     Note: Only approximately and discrete. 
@@ -219,10 +293,45 @@ def get_corner_node(lcurve):
         lx.append(lcurve[lia][0])
         ly.append(lcurve[lia][1])
     k = curvature_lcurve(lx, ly)
+    
     l_opt = np.argmax(k)
+    if debug:
+        import matplotlib
+        matplotlib.use("Qt4Agg")
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot(k, '-b')
+        plt.plot(l_opt, k[l_opt], 'xr')
+        plt.show()
+        plt.figure()
+        plt.title("L-curve")
+        plt.plot([np.log(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
+        plt.plot(np.log(lcurve[l_opt][0]), np.log(lcurve[l_opt][1]), 'or', label="optimal value")
+        plt.xlabel("log(|| Y - UV ||)")
+        plt.ylabel("log(|| lapU U || + || lapV V ||)")
+        plt.show()
+
     return l_opt
 
 def under_sampling(Nx, Ny, Nt, p, retries=10):
+    """
+    Generates a mask having (100*p)% of nodes active.
+    The nodes are chosen uniformly in the given dimensions.
+
+    TODO: This is bad style. Use a generic dimension list instead
+
+    Arguments:
+        Nx {int} -- first dimension
+        Ny {int} -- second dimension
+        Nt {int} -- third dimension
+        p {float} -- 1/100 percentage of data
+
+    Keyword Arguments:
+        retries {int} -- repetitions in case the sampling creates something odd (default: {10})
+
+    Returns:
+        array like -- mask - 3D tensor containing 1 and 0
+    """
     retval = np.zeros([Nx,Ny,Nt])
     _num = int(np.ceil(np.abs(p)*Nx*Ny*Nt))
     
@@ -238,7 +347,17 @@ def under_sampling(Nx, Ny, Nt, p, retries=10):
     return retval
 
 def subsample_3d_data(Xtrue, p):
+    """
+    Generates a sub-sampled data cube having uniformly chosen 100p % of data
+
+    Arguments:
+        Xtrue {array like} -- full dataset
+        p {float} -- 1/100 percentage of data
+
+    Returns:
+        array like -- Full dataset and sub-samples dataset
+    """
     assert len(Xtrue.shape) == 3
     P = under_sampling(*Xtrue.shape, p)
     Xomega = np.where(P==1, Xtrue, 0)
-    return Xtrue, Xomega
+    return Xomega

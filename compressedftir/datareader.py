@@ -4,6 +4,16 @@ from compressedftir.utils import stop_at_exception
 import os
 
 def load_afmir_csv(filepath):
+    """
+    Example for a conversion of AFMIR data files
+    The positions x, y and t are read from file but not returned (TODO)
+
+    Arguments:
+        filepath {str} -- file path
+
+    Returns:
+        numpy array -- data matrix
+    """
     t, x, y = [], [], []
     values = []
     with open(filepath, "r") as fp:
@@ -74,6 +84,9 @@ def load_data_file(filepath, format_hint=None):
     """
     Main loader function that distributes the loading according to filepath and format_hint
 
+    Here you can implement your own file format. Just add a new format_hint and implement
+    a data conversion in a new function.
+
     Arguments:
         filepath {str} -- path to file including file extension
 
@@ -105,7 +118,7 @@ def load_data_file(filepath, format_hint=None):
             retval = load_npy_file(filepath)
         else:
             raise ValueError("Unknown file suffix. exit!")
-    if format_hint == "afm-ir":
+    elif format_hint == "afm-ir":
         if np.char.endswith(filepath, ".csv"):
             retval = load_afmir_csv(filepath)
         elif np.char.endswith(filepath, ".txt"):
@@ -113,5 +126,5 @@ def load_data_file(filepath, format_hint=None):
         else:
             raise ValueError("Unknown file suffix. exit!")
     else:
-        raise ValueError("Unknown file_hint: {}\n chose from {}".format(file_hint, known_file_hints))
+        raise ValueError("Unknown format_hint: {}\n chose from {}".format(file_hint, known_file_hints))
     return retval
