@@ -24,7 +24,7 @@ def run2Dtest():
     
     r = 5                                   # desired rank parameter
     tau = 1e-5                              # convergence tolerance
-    lam = np.logspace(-8, 1, num=100)       # L-curve points
+    lam = np.logspace(-8, 1, num=100)       # L-curve points: WARNING: should be a numpy array atm
     max_iter = 200                         # maximal number of local interation
 
 
@@ -50,7 +50,7 @@ def runLeishmania_AFM_IR_test():
     export_every_lambda_result = True       # Flag to export every l-curve value result
     r = 5                                   # desired rank parameter
     tau = 1e-5                              # convergence tolerance
-    lam = np.logspace(-8, 1, num=100)       # L-curve points
+    lam = np.logspace(-8, 1, num=100)       # L-curve points: WARNING: should be a numpy array atm
     max_iter = 200                         # maximal number of local interation
 
 
