@@ -50,8 +50,8 @@ def runLeishmania_AFM_IR_test():
     export_every_lambda_result = True       # Flag to export every l-curve value result
     r = 5                                   # desired rank parameter
     tau = 1e-5                              # convergence tolerance
-    lam = np.logspace(-8, 1, num=100)       # L-curve points: WARNING: should be a numpy array atm
-    max_iter = 200                         # maximal number of local interation
+    lam = np.logspace(-3, 1, num=30)       # L-curve points: WARNING: should be a numpy array atm
+    max_iter = 500                         # maximal number of local interation
 
 
     do_reconstruction(Xomega, r, lam, tau, max_iter, exportpath, export_every_lambda_result, Xtrue, load=False)
@@ -77,7 +77,7 @@ def runLeishmania_FPA_test():
     export_every_lambda_result = True       # Flag to export every l-curve value result
     r = 5                                   # desired rank parameter
     tau = 1e-5                              # convergence tolerance
-    lam = np.logspace(-3, 0, num=30)       # L-curve points: WARNING: should be a numpy array atm
+    lam = np.logspace(-3, 1, num=30)       # L-curve points: WARNING: should be a numpy array atm
     max_iter = 500                         # maximal number of local interation
 
 

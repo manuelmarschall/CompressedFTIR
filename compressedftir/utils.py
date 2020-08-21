@@ -94,7 +94,7 @@ def build_neighbour_matrix(n, m):
         m {int} -- number of vertices in y direction
 
     Returns:
-        numpy array -- neighbor matrix
+        sparse lil-matrix -- neighbor matrix
     """
     
     X = np.arange(0, int(n*m)).reshape([int(n), int(m)], order="F")    
@@ -136,7 +136,7 @@ def build_neighbour_matrix(n, m):
 
     Kcol_A_py.setdiag(su, 0)
     Kcol_A_py[0, 0] = 3
-    dist = Kcol_A_py.toarray()
+    dist = Kcol_A_py
 
     # This is the old, slow but safe version. Really iterating over everything
     # if cache:
@@ -177,42 +177,69 @@ def relative_residual(Xk, Xk1):
     return np.linalg.norm(Xk - Xk1)/np.linalg.norm(Xk)
 
 
-def own_block_diag(mats, format='coo', dtype=None):
+def scipy_block_diag(mats, format=None, dtype=None):
     """
-    create a block diagonal matrix in sparse format
+    This is taken from a new version of scipy related to the issue
+    https://github.com/scipy/scipy/pull/12356
 
-    Arguments:
-        mats {list} -- list of matrices
-
-    Keyword Arguments:
-        format {str} -- sparse format str (default: {'coo'})
-        dtype {str} -- force a specific format of the matrix values, 
-                       eg. np.complex (default: {None})
-
-    Returns:
-        scipy sparse matrix -- block diagonal sparse matrix
+    Build a block diagonal sparse matrix from provided matrices.
+    Parameters
+    ----------
+    mats : sequence of matrices
+        Input matrices.
+    format : str, optional
+        The sparse format of the result (e.g., "csr"). If not given, the matrix
+        is returned in "coo" format.
+    dtype : dtype specifier, optional
+        The data-type of the output matrix. If not given, the dtype is
+        determined from that of `blocks`.
+    Returns
+    -------
+    res : sparse matrix
+    Notes
+    -----
+    .. versionadded:: 0.11.0
+    See Also
+    --------
+    bmat, diags
+    Examples
+    --------
+    >>> from scipy.sparse import coo_matrix, block_diag
+    >>> A = coo_matrix([[1, 2], [3, 4]])
+    >>> B = coo_matrix([[5], [6]])
+    >>> C = coo_matrix([[7]])
+    >>> block_diag((A, B, C)).toarray()
+    array([[1, 2, 0, 0],
+           [3, 4, 0, 0],
+           [0, 0, 5, 0],
+           [0, 0, 6, 0],
+           [0, 0, 0, 7]])
     """
-    dtype = np.dtype(dtype)
     row = []
     col = []
     data = []
     r_idx = 0
     c_idx = 0
     for a in mats:
-        if issparse(a):
-            a = a.tocsr()
-        else:
-            a = coo_matrix(a).tocsr()
         nrows, ncols = a.shape
-        for r in range(nrows):
-            for c in range(ncols):
-                if a[r, c] is not None:
-                    row.append(r + r_idx)
-                    col.append(c + c_idx)
-                    data.append(a[r, c])
-        r_idx = r_idx + nrows
-        c_idx = c_idx + ncols
-    return coo_matrix((data, (row, col)), dtype=dtype).asformat(format)
+        if issparse(a):
+            a = a.tocoo()
+            row.append(a.row + r_idx)
+            col.append(a.col + c_idx)
+            data.append(a.data)
+        else:
+            a_row, a_col = np.divmod(np.arange(nrows*ncols), ncols)
+            row.append(a_row + r_idx)
+            col.append(a_col + c_idx)
+            data.append(a.ravel())
+        r_idx += nrows
+        c_idx += ncols
+    row = np.concatenate(row)
+    col = np.concatenate(col)
+    data = np.concatenate(data)
+    return coo_matrix((data, (row, col)),
+                      shape=(r_idx, c_idx),
+                      dtype=dtype).asformat(format)
 
 
 def get_regularizer(n, m, t, r):
