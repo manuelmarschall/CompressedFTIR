@@ -1,7 +1,39 @@
 import numpy as np
 from scipy.sparse import load_npz
+from scipy.io import loadmat
 from compressedftir.utils import stop_at_exception
 import os
+
+def load_FPA_mat(filepath):
+    """
+    Loads a matlab .mat file. 
+    Assumes the .mat container has a field "Expression1" and the 
+    3D data is column-wise raveled in the array.
+    This method assumes data that was used for the low-rank Leishmania 
+    paper. Here, the dimensions of the data was 128x128x3554 for all 
+    measurements conducted.
+
+    Arguments:
+        filepath {str} -- path to file
+
+    Raises:
+        KeyError: Expression1 key not in container
+
+    Returns:
+        array-like -- 3D data cube
+    """
+    
+    tab = loadmat(filepath)
+    assert isinstance(tab, dict)
+
+    n, m = 128, 3554
+    try:
+        data = np.array(tab["Expression1"])          # Data is expected to be flattened
+    except KeyError:
+        raise KeyError("Expression1 is not in struct, which is expected to be of type FPALeismania")
+    data = data.reshape([n*n, m], order="C")
+    data = data.reshape([n, n, m])    
+    return data
 
 def load_afmir_csv(filepath):
     """
@@ -106,7 +138,8 @@ def load_data_file(filepath, format_hint=None):
     if not os.path.exists(filepath):
         raise IOError("file does not exist: {}".format(filepath))
 
-    known_file_hints = ["afm-ir"]
+    known_file_hints = ["afm-ir", 
+                        "leishmania-fpa"]
 
     if format_hint is None:
         # check for file suffix, as no hint is given
@@ -125,6 +158,10 @@ def load_data_file(filepath, format_hint=None):
             raise NotImplementedError(".txt conversion not implemented. Use .csv file.")
         else:
             raise ValueError("Unknown file suffix. exit!")
+    elif format_hint == "leishmania-fpa":
+        if not np.char.endswith(filepath, ".mat"):
+            raise ValueError("unknown file suffix. Assuming .mat file")
+        retval = load_FPA_mat(filepath)
     else:
         raise ValueError("Unknown format_hint: {}\n chose from {}".format(file_hint, known_file_hints))
     return retval

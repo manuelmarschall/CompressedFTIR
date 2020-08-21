@@ -173,6 +173,7 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
     if Xtrue is not None:
         res_true = []
     lcurve = []
+    print("Get regularizer")
     if not d3_flag:
         lapU, lapV = get_regularizer(np.sqrt(n), np.sqrt(n), Z0.shape[1], r)
     else:

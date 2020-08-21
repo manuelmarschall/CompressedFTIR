@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.linalg import svd
-from scipy.sparse import (csr_matrix, coo_matrix, issparse)
+from scipy.sparse import (csr_matrix, coo_matrix, issparse, lil_matrix)
 from scipy.sparse import kron as spkron
 from scipy.sparse import eye as speye
 from scipy.sparse.linalg import spsolve
@@ -84,7 +84,7 @@ def neig_metric(u, v, X, Y):
                 return -1
     return 0
     
-def build_neighbour_matrix(n, m, cache=True):
+def build_neighbour_matrix(n, m):
     """
     Generates a matrix of size (n*m x n*m) indicating the number of neighbor
     of a pixel by calling neig_metric for every pixel/ vertex combination
@@ -93,75 +93,71 @@ def build_neighbour_matrix(n, m, cache=True):
         n {int} -- number of vertices in x direction
         m {int} -- number of vertices in y direction
 
-    Keyword Arguments:
-        cache {bool} -- flag to save and load an already computed matrix
-                        from a fixed but temporary directory (default: {True})
-
     Returns:
         numpy array -- neighbor matrix
     """
-    # if False:
-    #     # this is faster but does only work for rectangular matrices
-    #     import numpy as np
-    #     from scipy.sparse import lil_matrix, coo_matrix
-    #     X = np.arange(0, int(n**2)).reshape([int(n), int(n)])    
-    #     nrc = n**2
-    #     ic = np.zeros([n+2, n+2])
-    #     ic[1:-1, 1:-1] = X
-        
-    #     I = np.ones([n+2, n+2], dtype=np.bool)
-    #     I[0, :] = 0
-    #     I[-1, :] = 0
-    #     I[:, 0] = 0
-    #     I[:, -1] = 0
-        
-    #     icd = np.zeros([np.prod(n**2), 8])
-    #     icd[:, 0] = ic[np.roll(I, 1, axis=1)]    # shift right
-    #     icd[:, 1] = ic[np.roll(I, 1, axis=0)]    # shift down
-    #     icd[:, 2] = ic[np.roll(I, -1, axis=1)]   # shift left
-    #     icd[:, 3] = ic[np.roll(I, -1, axis=0)]   # shift up
-        
-    #     # shift up and right
-    #     icd[:, 4] = ic[np.roll(np.roll(I, 1, axis=1), -1, axis=0)]
-    #     # shift up and left
-    #     icd[:, 5] = ic[np.roll(np.roll(I, -1, axis=1), -1, axis=0)]
-    #     # shift down and right
-    #     icd[:, 6] = ic[np.roll(np.roll(I, 1, axis=1), 1, axis=0)]
-    #     # shift down and left
-    #     icd[:, 7] = ic[np.roll(np.roll(I, -1, axis=1), 1, axis=0)]
-        
-    #     ic = np.tile(ic[I].reshape(-1, order="F"), (8, 1)).ravel()
-    #     icd = icd.reshape(-1, order="F")
-    #     data = np.ones([len(icd), 1]).ravel()
-    #     Kcol_A_py = coo_matrix((data, (ic, icd)), shape=[int(n**2), int(n**2)])
-    #     su = np.sum(Kcol_A_py, axis=0).T
-    #     Kcol_A_py = lil_matrix(-Kcol_A_py)
-    #     Kcol_A_py[2:,0] = 0
-    #     Kcol_A_py[n,0] = -1
-    #     Kcol_A_py[n+1,0] = -1
-    #     Kcol_A_py[1, 0] = -1
+    
+    X = np.arange(0, int(n*m)).reshape([int(n), int(m)], order="F")    
+    nrc = n*m
+    ic = np.zeros([n+2, m+2])
+    ic[1:-1, 1:-1] = X
+    
+    I = np.ones([n+2, m+2], dtype=np.bool)
+    I[0, :] = 0
+    I[-1, :] = 0
+    I[:, 0] = 0
+    I[:, -1] = 0
+    
+    icd = np.zeros([np.prod(n*m), 8])
+    icd[:, 0] = ic[np.roll(I, 1, axis=1)]    # shift right
+    icd[:, 1] = ic[np.roll(I, 1, axis=0)]    # shift down
+    icd[:, 2] = ic[np.roll(I, -1, axis=1)]   # shift left
+    icd[:, 3] = ic[np.roll(I, -1, axis=0)]   # shift up
+    
+    # shift up and right
+    icd[:, 4] = ic[np.roll(np.roll(I, 1, axis=1), -1, axis=0)]
+    # shift up and left
+    icd[:, 5] = ic[np.roll(np.roll(I, -1, axis=1), -1, axis=0)]
+    # shift down and right
+    icd[:, 6] = ic[np.roll(np.roll(I, 1, axis=1), 1, axis=0)]
+    # shift down and left
+    icd[:, 7] = ic[np.roll(np.roll(I, -1, axis=1), 1, axis=0)]
+    
+    ic = np.tile(ic[I].reshape(-1, order="F"), (8, 1)).ravel(order="C")
+    icd = icd.reshape(-1, order="F")
+    data = np.ones([len(icd), 1]).ravel(order="F")
+    Kcol_A_py = coo_matrix((data, (ic, icd)), shape=[int(n*m), int(n*m)])
+    su = np.sum(Kcol_A_py, axis=0).T
+    Kcol_A_py = lil_matrix(-Kcol_A_py)
+    Kcol_A_py[2:,0] = 0
+    Kcol_A_py[n,0] = -1
+    Kcol_A_py[n+1,0] = -1
+    Kcol_A_py[1, 0] = -1
 
-    #     Kcol_A_py.setdiag(su, 0)
-    #     Kcol_A_py[0, 0] = 3
-    #     return Kcol_A_py
+    Kcol_A_py.setdiag(su, 0)
+    Kcol_A_py[0, 0] = 3
+    dist = Kcol_A_py.toarray()
 
-    if cache:
-        import os
-        if not os.path.exists("compFTIRtmp/neighborMat/"):  
-            os.makedirs("compFTIRtmp/neighborMat/")
-        curr_mat = "compFTIRtmp/neighborMat/{}{}".format(n,m)
-        if os.path.exists(curr_mat + ".npy"):
-            return np.load(curr_mat + ".npy")
-    dim_list = [n, m]
-    meshgrid = np.array(np.meshgrid(*[np.arange(ndim) for ndim in dim_list]))
-    X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
-    dist = np.zeros([n*m]*2)
-    for lia in range(n*m):
-        for lib in range(n*m):
-            dist[lia, lib] = neig_metric(X_grid[lia,:], X_grid[lib, :], *dim_list)
-    if cache:
-        np.save(curr_mat, dist)
+    # This is the old, slow but safe version. Really iterating over everything
+    # if cache:
+    #     import os
+    #     if not os.path.exists("compFTIRtmp/neighborMat/"):  
+    #         os.makedirs("compFTIRtmp/neighborMat/")
+    #     curr_mat = "compFTIRtmp/neighborMat/{}{}".format(n,m)
+    #     if os.path.exists(curr_mat + ".npy"):
+    #         return np.load(curr_mat + ".npy")
+    # dim_list = [n, m]
+    # meshgrid = np.array(np.meshgrid(*[np.arange(ndim) for ndim in dim_list]))
+    # X_grid = meshgrid.reshape(meshgrid.shape[0], -1).T
+    # dist = np.zeros([n*m]*2)
+    # for lia in range(n*m):
+    #     for lib in range(n*m):
+    #         dist[lia, lib] = neig_metric(X_grid[lia,:], X_grid[lib, :], *dim_list)
+    # if cache:
+    #     np.save(curr_mat, dist)
 
+    # assert np.linalg.norm(Kcol_A_py - dist) <= 1e-10
+    
     return dist
 
 def relative_residual(Xk, Xk1):
@@ -220,10 +216,7 @@ def own_block_diag(mats, format='coo', dtype=None):
 
 
 def get_regularizer(n, m, t, r):
-    print("get neighbor matrix. This might take a while.")
-    print("  (This will be speed tuned in later versions.)")
     Kcol_A = csr_matrix(build_neighbour_matrix(int(n), int(m)))
-    print("neighbor matrix done")
     Kcol_B = speye(t)
     # build regularization matrices
     lapU = spkron(Kcol_A, speye(r))
