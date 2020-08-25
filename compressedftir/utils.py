@@ -160,7 +160,7 @@ def build_neighbour_matrix(n, m):
     
     return dist
 
-def relative_residual(Xk, Xk1):
+def relative_residual(Xk, Xk1, check_nnz=False):
     """
     computes a relative residual of two matrices in the default norm
     $$
@@ -174,6 +174,11 @@ def relative_residual(Xk, Xk1):
     Returns:
         float -- relative residual
     """
+    if check_nnz:
+        nnz = np.nonzero(Xk)
+        retval = sum_sq_nnz(nnz, Xk-Xk1)
+        retval /= sum_sq_nnz(nnz, Xk)
+        return retval
     return np.linalg.norm(Xk - Xk1)/np.linalg.norm(Xk)
 
 
@@ -291,47 +296,9 @@ def curvature_lcurve(lx, ly):
     dx = np.gradient(lx)
     dy = np.gradient(ly, dx)
     d2y = np.gradient(dy, dx)
-    k = np.abs(d2y)/(1+dy**2)**(1.5)
+    k = np.abs(d2y)/((1+dy**2)**(1.5))
     return k
-    
-def get_corner_node(lcurve, debug=False):
-    """
-    Computes the optimal argument of a given l-curve.
-    Note: Only approximately and discrete. 
-    TODO: More elaborate using interpolation/extrapolation and 
-          analytical differentiation.
-          Or implement https://arxiv.org/abs/1608.04571
 
-    Arguments:      
-        lcurve {list} -- l-curve [[x1, y1], [x2, y2], ...]
-
-    Returns:
-        int -- Optimal argument that maximizes curvature
-    """
-    lx, ly = [], []
-    for lia in range(len(lcurve)):
-        lx.append(lcurve[lia][0])
-        ly.append(lcurve[lia][1])
-    k = curvature_lcurve(lx, ly)
-    
-    l_opt = np.argmax(k)
-    if debug:
-        import matplotlib
-        matplotlib.use("Qt4Agg")
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.plot(k, '-b')
-        plt.plot(l_opt, k[l_opt], 'xr')
-        plt.show()
-        plt.figure()
-        plt.title("L-curve")
-        plt.plot([np.log(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
-        plt.plot(np.log(lcurve[l_opt][0]), np.log(lcurve[l_opt][1]), 'or', label="optimal value")
-        plt.xlabel("log(|| Y - UV ||)")
-        plt.ylabel("log(|| lapU U || + || lapV V ||)")
-        plt.show()
-
-    return l_opt
 
 def under_sampling(Nx, Ny, Nt, p, retries=10):
     """

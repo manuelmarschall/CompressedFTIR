@@ -1,6 +1,7 @@
-from compressedftir.utils import (stop_at_exception, get_regularizer, get_nnz_indices, sum_sq_nnz, get_corner_node)
+from compressedftir.utils import (stop_at_exception, get_regularizer, get_nnz_indices, sum_sq_nnz)
 from compressedftir.reconstruction.lowrank.single_gmrf import lr_recon_single
 from compressedftir.mp_utils import wrap_mp
+from compressedftir.lcurve import (lcurve_value_gmrf, get_corner_node_matlab, get_corner_node_prune)
 
 import matplotlib
 matplotlib.use('Agg')
@@ -11,25 +12,7 @@ import os
 import json
 import time
 
-def lcurve_value(Z0, U, V, lapU, lapV):
-    """
-    computes the argument and values of an lcurve result,
-    having the proposed regularized low-rank model
 
-    Arguments:
-        Z0 {array like} -- sub-sampled data
-        U {array like} -- first model component
-        V {array like} -- second model component
-        lapU {array like} -- regularizer for U
-        lapV {array like} -- regularizer for V
-
-    Returns:
-        list -- [||Z0 - UV||_Omega / ||Z0||_Omega , ||lapU U|| + ||lapV V||]
-    """
-    nnz = np.nonzero(Z0)
-    Xh = U.dot(V)
-    dd = Xh - Z0
-    return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0), U.reshape(-1, order="F").dot(lapU.dot(U.reshape(-1, order="F"))) + V.reshape(-1, order="F").dot(lapV.dot(V.reshape(-1, order="F")))]
 
 def plot_lcurve(lcurve, l_opt, export_path):
     """
@@ -42,10 +25,10 @@ def plot_lcurve(lcurve, l_opt, export_path):
     """
     fig = plt.figure()
     plt.title("L-curve")
-    plt.plot([np.log(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
-    plt.plot(np.log(lcurve[l_opt][0]), np.log(lcurve[l_opt][1]), 'or', label="optimal value")
+    plt.plot([np.log10(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log10(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
+    plt.plot(np.log10(lcurve[l_opt][0]), np.log10(lcurve[l_opt][1]), 'or', label="optimal value")
     plt.xlabel("log(|| Y - UV ||)")
-    plt.ylabel("log(|| lapU U || + || lapV V ||)")
+    plt.ylabel("log(|| L_U U || + || L_V V ||)")
     fig.savefig(export_path)
 
         
@@ -88,14 +71,16 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
                               allows comparison (default: {None})
     """
     if Xtrue is not None:
+        vmin = np.min(Xtrue)
+        vmax = np.max(Xtrue)
         fig = plt.figure(figsize=(20, 5))    
         plt.subplot(141)
         plt.title("Full dataset")
-        im = plt.imshow(Xtrue)
+        im = plt.imshow(Xtrue, vmin=vmin, vmax=vmax)
         plt.colorbar(im)
         plt.subplot(142)
         plt.title("Reconstruction")
-        im = plt.imshow(Xh)
+        im = plt.imshow(Xh, vmin=vmin, vmax=vmax)
         plt.colorbar(im)
         plt.subplot(143)
         plt.title("Difference")
@@ -103,7 +88,7 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
         plt.colorbar(im)
         plt.subplot(144)
         plt.title("Sampleset")
-        im = plt.imshow(Z0)
+        im = plt.imshow(Z0, vmin=vmin, vmax=vmax)
         plt.colorbar(im)
         plt.tight_layout()
     else:
@@ -188,7 +173,9 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         "lapV": lapV,
         "nnz_Z0_U": nnzU,
         "nnz_Z0_V": nnzV,
-        "Xtrue": Xtrue
+        "Xtrue": Xtrue,
+        "iv_U": None,
+        "iv_V": None
     }
 
     # start iteration over L-curve items
@@ -210,7 +197,7 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
             res_g.append(curr_result["resG"])
             if "resT" in curr_result:
                 res_true.append(curr_result["resT"])
-            lcurve.append(lcurve_value(Z0, U, V, lapU, lapV))
+            lcurve.append(lcurve_value_gmrf(Z0, U, V, lapU, lapV))
             U_list.append(U)
             V_list.append(V)
             loc_start_time = curr_result["starttime"]
@@ -222,11 +209,15 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         curr_result = lr_recon_single(**solver_info)
         loc_duration = time.time() - loc_start_time
         U, V = curr_result["U"], curr_result["V"]
+        if np.all(lam[1:] <= lam[:-1]):
+            # regularization parameter are decreasing
+            solver_info["iv_U"] = curr_result["iv_U"]
+            solver_info["iv_V"] = curr_result["iv_V"]
         res_l.append(curr_result["resL"])
         res_g.append(curr_result["resG"])
         if Xtrue is not None:
             res_true.append(curr_result["resT"])
-        lcurve.append(lcurve_value(Z0, U, V, lapU, lapV))
+        lcurve.append(lcurve_value_gmrf(Z0, U, V, lapU, lapV))
         U_list.append(U)
         V_list.append(V)
                 
@@ -257,15 +248,24 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
             if Xtrue is not None:
                 wrap_mp(plot_residual, res_true[lia], curr_path + "res2full.png", label="res2Full", ylabel="||Y - X_t|| / ||Y||", title=plot_title)
     if export_path is not None:
-        l_opt = get_corner_node(lcurve, debug=False)
-        
+        l_opt = get_corner_node_prune(lcurve)
+        try:
+            l_opt_mat = get_corner_node_matlab(lcurve, debug=False)
+            
+            print("L prune: {}".format(l_opt))
+            print("L matlab: {}".format(l_opt_mat))
+            assert l_opt == l_opt_mat - 1
+        except Exception:
+            pass
+
+
         Xh = U_list[l_opt].dot(V_list[l_opt]) 
         export_dict = {
                 "U": U_list[l_opt].tolist(),
                 "V": V_list[l_opt].tolist(),
                 "Z0": Z0.tolist(),
                 "lambda": lam.tolist(),
-                "l_opt": l_opt.tolist(),
+                "l_opt": l_opt,
                 "lcurve": lcurve,
                 "resL": res_l,
                 "resG": res_g,

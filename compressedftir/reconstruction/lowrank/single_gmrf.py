@@ -104,7 +104,7 @@ def updateV(_U, Xomega, curr_r, nnz, lmb=0.0, lap=None):
     #print("V solve: {}".format(time.time()-start))
     return retval
 
-def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, Xtrue=None):
+def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, Xtrue=None, iv_U=None, iv_V=None):
     """
     Reconstructs a low-rank model UV to fit the data Xomega.
     Assumes a fixed rank r
@@ -122,6 +122,8 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
 
     Keyword Arguments:
         Xtrue {array like} -- Full dataset for comparison (default: {None})
+        iv_U {array like} -- proposed initial value of U (default: {None})
+        iv_V {array like} -- proposed initial value of V (default: {None})
 
     Returns:
         dict -- result dictionary containing 
@@ -134,13 +136,18 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
     # normalize the data
     scl = np.std(Xomega, ddof=1)
     Xomega_scl = Xomega/scl
-    # initialize using svd. returns (n, r)x(r,r)x(r,m)
-    W, Lambda, Z = svd(Xomega_scl, full_matrices=False)
-    # usually, the svd rank is larger than desired -> crop
-    W = W[:, :r]; Lambda = Lambda[:r]; Z = Z[:r, :]
-    # distribute the singular values to U and V
-    U = W*Lambda**(0.5)          # shape (n, r)
-    V = (Z.T*Lambda**(0.5)).T    # shape (r, m)
+    if iv_U is None or iv_V is None:
+        # initialize using svd. returns (n, r)x(r,r)x(r,m)
+        W, Lambda, Z = svd(Xomega_scl, full_matrices=False)
+        # usually, the svd rank is larger than desired -> crop
+        W = W[:, :r]; Lambda = Lambda[:r]; Z = Z[:r, :]
+        # distribute the singular values to U and V
+        U = W*Lambda**(0.5)          # shape (n, r)
+        V = (Z.T*Lambda**(0.5)).T    # shape (r, m)
+    else:
+        print("initial value given")
+        U = iv_U
+        V = iv_V
     # initialize the residual lists
     resL = [np.infty]
     resG = [0]
@@ -155,7 +162,7 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
         V = updateV(U, Xomega_scl, r, nnz_Z0_U, l_regu, lapV)
         Xt = np.dot(U, V) * scl
         resL.append(relative_residual(Xt_old, Xt))
-        resG.append(relative_residual(Xomega, Xt))
+        resG.append(relative_residual(Xomega, Xt, check_nnz=True))
         if Xtrue is not None:
             resT.append(relative_residual(Xtrue, Xt))
             print("it: {:2d}/{}, local res: {:.2e}, global res: {:.2e}, res2Full: {:.2e}".format(t+1, T, resL[-1], resG[-1], resT[-1]))
@@ -167,7 +174,9 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
         "U": U*np.sqrt(scl),
         "V": V*np.sqrt(scl),
         "resL": resL[1:],
-        "resG": resG[1:]
+        "resG": resG[1:],
+        "iv_U": U,
+        "iv_V": V
         }
     if Xtrue is not None:
         retval["resT"] = resT
