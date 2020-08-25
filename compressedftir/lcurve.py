@@ -1,3 +1,33 @@
+'''
+License
+ 
+ copyright Manuel Marschall (PTB) 2020
+ 
+ This software is licensed under the BSD-like license:
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+ 
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the distribution.
+
+ DISCLAIMER
+ ==========
+ This software was developed at Physikalisch-Technische Bundesanstalt
+ (PTB). The software is made available "as is" free of cost. PTB assumes
+ no responsibility whatsoever for its use by other parties, and makes no
+ guarantees, expressed or implied, about its quality, reliability, safety,
+ suitability or any other characteristic. In no event will PTB be liable
+ for any direct, indirect or consequential damage arising in connection
+
+Using this software in publications requires citing the following paper
+
+Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
+DOI: ??? 
+'''
 import numpy as np
 from compressedftir.utils import sum_sq_nnz
 
@@ -124,7 +154,25 @@ def get_corner_node_matlab(lcurve, debug=False):
     return l_opt
 
 def get_corner_node_prune(lcurve):
-    
+    """
+    Computes the optimal argument for a given L-curve.
+    Implements the python version of the matlab corner method of
+    % Per Christian Hansen and Toke Koldborg Jensen, DTU Compute, DTU;
+    % Giuseppe Rodriguez, University of Cagliari, Italy; Sept. 2, 2011.
+    motivated by the Reference: P. C. Hansen, T. K. Jensen and G. Rodriguez, 
+    "An adaptive pruning algorithm for the discrete L-curve criterion," 
+    J. Comp. Appl. Math., 198 (2007), 483-492. 
+
+    Arguments:
+        lcurve {list} -- L-curve [[x1, y1], [x2, y2], ...]
+
+    Raises:
+        ValueError: Input list contains not equal length lists
+        ValueError: Invalid data given
+
+    Returns:
+        int -- index of lcurve list that is "optimal"
+    """
     rho, eta = np.zeros(len(lcurve)), np.zeros(len(lcurve))
     for lia in range(len(lcurve)):
         rho[lia] = lcurve[lia][0]
@@ -139,7 +187,7 @@ def get_corner_node_prune(lcurve):
     if len(keep) < 1:
         raise ValueError("To few accepted data found")
     if len(keep) < len(rho):
-        raise Warning("I had to trim the data due to NaN/Inf or zero values")
+        print("I had to trim the data due to NaN/Inf or zero values")
     rho = rho[keep]
     eta = eta[keep]
     if np.any(rho[:-1] < rho[1:]) or np.any(eta[:-1] > eta[1:]):
@@ -148,12 +196,12 @@ def get_corner_node_prune(lcurve):
     P = np.log10(np.array([rho, eta])).T            # Coordinates of the loglog L-curve
     V = P[1:, :] - P[:-1, :]                        # The vectors defined by these coord
     v = np.sqrt(np.sum(V**2, axis=1))               # length of the vectors
-    # W = V/np.tile(v, (1, 2));                       # Normalized vectors.
+    # W = V/np.tile(v, (1, 2));                     # Normalized vectors.
     W = np.zeros(V.shape)
     W[:, 0] = V[:, 0]/v
     W[:, 1] = V[:, 1]/v
     clist = []                                      # list of condidates
-    p = np.min([5, nP])                               # number of vectors in pruned L-curve
+    p = np.min([5, nP])                             # number of vectors in pruned L-curve
     convex = 0                                      # Are the pruned L-curves convex
     I = np.argsort(v)[::-1]                         # Sort lengths decending
     while p < (nP-1)*2:

@@ -22,10 +22,11 @@
  suitability or any other characteristic. In no event will PTB be liable
  for any direct, indirect or consequential damage arising in connection
 
-Using this software in publications requires citing the following 
+Using this software in publications requires citing the following paper
 
+Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
 DOI: ??? 
-'''
+
 
 ## References
 
