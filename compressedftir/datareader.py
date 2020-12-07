@@ -1,13 +1,13 @@
 '''
 License
- 
+
  copyright Manuel Marschall (PTB) 2020
- 
+
  This software is licensed under the BSD-like license:
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
- 
+
  1. Redistributions of source code must retain the above copyright notice,
     this list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright
@@ -26,7 +26,7 @@ License
 Using this software in publications requires citing the following paper
 
 Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
-DOI: ??? 
+DOI: ???
 '''
 import numpy as np
 from scipy.sparse import load_npz
@@ -34,13 +34,14 @@ from scipy.io import loadmat
 from compressedftir.utils import stop_at_exception
 import os
 
+
 def load_FPA_mat(filepath):
     """
-    Loads a matlab .mat file. 
-    Assumes the .mat container has a field "Expression1" and the 
+    Loads a matlab .mat file.
+    Assumes the .mat container has a field "Expression1" and the
     3D data is column-wise raveled in the array.
-    This method assumes data that was used for the low-rank Leishmania 
-    paper. Here, the dimensions of the data was 128x128x3554 for all 
+    This method assumes data that was used for the low-rank Leishmania
+    paper. Here, the dimensions of the data was 128x128x3554 for all
     measurements conducted.
 
     Arguments:
@@ -52,7 +53,7 @@ def load_FPA_mat(filepath):
     Returns:
         array-like -- 3D data cube
     """
-    
+
     tab = loadmat(filepath)
     assert isinstance(tab, dict)
 
@@ -62,8 +63,9 @@ def load_FPA_mat(filepath):
     except KeyError:
         raise KeyError("Expression1 is not in struct, which is expected to be of type FPALeismania")
     data = data.reshape([n*n, m], order="C")
-    data = data.reshape([n, n, m])    
+    data = data.reshape([n, n, m])
     return data
+
 
 def load_afmir_csv(filepath):
     """
@@ -103,6 +105,7 @@ def load_afmir_csv(filepath):
     ny = len(np.unique(np.array(y)))
     return np.fliplr(np.array(values).reshape([ny, nx, len(t)]).transpose([1, 0, 2]))
 
+
 def load_npz_file(filepath):
     """
     Scipy sparse matrices or numpy compressed arrays are stored as .npz file
@@ -121,8 +124,10 @@ def load_npz_file(filepath):
             return np.load(filepath)
         except IOError as exception:
             # Nope neither
-            err_str = "File does not exists, or ends with .npz and is neither a scipy sparse matrix or in compressed numpy format."
+            err_str = "File does not exists, or ends with .npz and is neither a scipy "
+            err_str += "sparse matrix or in compressed numpy format."
             stop_at_exception(exception, err_str)
+
 
 def load_npy_file(filepath):
     """
@@ -141,7 +146,8 @@ def load_npy_file(filepath):
         stop_at_exception(exception, "File does not exists or cannot be read")
     except ValueError as exception:
         stop_at_exception(exception, "The file contains an object array, but allow_pickle=False given")
-        
+
+
 def load_data_file(filepath, format_hint=None):
     """
     Main loader function that distributes the loading according to filepath and format_hint
@@ -168,7 +174,7 @@ def load_data_file(filepath, format_hint=None):
     if not os.path.exists(filepath):
         raise IOError("file does not exist: {}".format(filepath))
 
-    known_file_hints = ["afm-ir", 
+    known_file_hints = ["afm-ir",
                         "leishmania-fpa"]
 
     if format_hint is None:
@@ -193,5 +199,5 @@ def load_data_file(filepath, format_hint=None):
             raise ValueError("unknown file suffix. Assuming .mat file")
         retval = load_FPA_mat(filepath)
     else:
-        raise ValueError("Unknown format_hint: {}\n chose from {}".format(file_hint, known_file_hints))
+        raise ValueError("Unknown format_hint: {}\n chose from {}".format(format_hint, known_file_hints))
     return retval

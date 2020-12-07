@@ -92,7 +92,7 @@ Guides to install python under Linux, Windows and Mac can be found here: https:/
 
 Some features and important files are mentioned in the following
 
-* `run_recon.py` is a start script and contains a dummy 2D example using an l-curve criterion for choosing the regularization parameter in a smoothed matrix reconstruction approach. 
+* `run_recon.py` is a run script and contains a dummy 2D example using an l-curve criterion for choosing the regularization parameter in a smoothed matrix reconstruction approach. 
 * `compressedftir.datareader` implements a variety of data formats and can be adapted to your file format
 * `compressedftir.reconstruction.lowrank` implements the code that is described in the paper [1]
 

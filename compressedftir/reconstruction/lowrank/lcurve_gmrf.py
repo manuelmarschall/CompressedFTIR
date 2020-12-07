@@ -1,13 +1,13 @@
 '''
 License
- 
+
  copyright Manuel Marschall (PTB) 2020
- 
+
  This software is licensed under the BSD-like license:
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
- 
+
  1. Redistributions of source code must retain the above copyright notice,
     this list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright
@@ -26,22 +26,20 @@ License
 Using this software in publications requires citing the following paper
 
 Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
-DOI: ??? 
+DOI: ???
 '''
-from compressedftir.utils import (stop_at_exception, get_regularizer, get_nnz_indices, sum_sq_nnz)
+
+from compressedftir.utils import (stop_at_exception, get_regularizer, get_nnz_indices)
 from compressedftir.reconstruction.lowrank.single_gmrf import lr_recon_single
 from compressedftir.mp_utils import wrap_mp
 from compressedftir.lcurve import (lcurve_value_gmrf, get_corner_node_matlab, get_corner_node_prune)
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
 import numpy as np
 import os
 import json
 import time
-
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 
 
 def plot_lcurve(lcurve, l_opt, export_path):
@@ -55,14 +53,14 @@ def plot_lcurve(lcurve, l_opt, export_path):
     """
     fig = plt.figure()
     plt.title("L-curve")
-    plt.plot([np.log10(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log10(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
+    plt.plot([np.log10(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log10(lcurve[lia][1])
+             for lia in range(len(lcurve))], '-xb', label="L-curve")
     plt.plot(np.log10(lcurve[l_opt][0]), np.log10(lcurve[l_opt][1]), 'or', label="optimal value")
     plt.xlabel("log(|| Y - UV ||)")
     plt.ylabel("log(|| L_U U || + || L_V V ||)")
     fig.savefig(export_path)
 
-        
-        
+
 def plot_residual(res, export_path, label="", ylabel="", title=""):
     """
     plot a given list, here: residuals
@@ -81,10 +79,11 @@ def plot_residual(res, export_path, label="", ylabel="", title=""):
     plt.xlabel("iterations")
     plt.ylabel(ylabel)
     plt.title(title)
-    if not label == "": 
+    if not label == "":
         plt.legend()
     plt.tight_layout()
     fig.savefig(export_path)
+
 
 def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
     """
@@ -97,13 +96,13 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
 
     Keyword Arguments:
         title {str} -- plot title (default: {""})
-        Xtrue {array-like} -- Full dataset 2D slice, 
+        Xtrue {array-like} -- Full dataset 2D slice,
                               allows comparison (default: {None})
     """
     if Xtrue is not None:
         vmin = np.min(Xtrue)
         vmax = np.max(Xtrue)
-        fig = plt.figure(figsize=(20, 5))    
+        fig = plt.figure(figsize=(20, 5))
         plt.subplot(141)
         plt.title("Full dataset")
         im = plt.imshow(Xtrue, vmin=vmin, vmax=vmax)
@@ -122,7 +121,7 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
         plt.colorbar(im)
         plt.tight_layout()
     else:
-        fig = plt.figure(figsize=(8, 4))    
+        fig = plt.figure(figsize=(8, 4))
         plt.subplot(121)
         plt.title("Reconstruction")
         im = plt.imshow(Xh)
@@ -136,7 +135,9 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
     fig.subplots_adjust(top=0.88)
     fig.savefig(export_path)
 
-def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, export_every_lambda_result=False, Xtrue=None, load=False):
+
+def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, export_every_lambda_result=False, Xtrue=None,
+                      load=False):
     """
     start method of the reconstruction. calls the solver iteratively using the given lambda values in lam.
     Saves the results and plots.
@@ -153,8 +154,8 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         export_every_lambda_result {bool} -- flag to export every result for every value in lam.
                                              creates sub-directories in 'export_path' (default: {False})
         Xtrue {array-like} -- full data for comparison (default: {None})
-        load {bool} -- flag to allow reading of existing results from 
-                       'export_every_lambda_result' runs. Usefull for debugging and 
+        load {bool} -- flag to allow reading of existing results from
+                       'export_every_lambda_result' runs. Usefull for debugging and
                        restarts (default: {False})
 
     Raises:
@@ -179,8 +180,9 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         d3_flag = False
     else:
         raise ValueError("Shape of matrix not supported: {}".format(Z0.shape))
-    
-    treat_T = lambda T: T[:, int(t/2)].reshape([n, m]) if d3_flag else T
+
+    def treat_T(T):
+        return T[:, int(t/2)].reshape([n, m]) if d3_flag else T
     U_list = []
     V_list = []
     res_l = []
@@ -212,7 +214,8 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
     glob_start_time = time.time()
     for lia, l in enumerate(lam):
         print("L-curve step: {}/{}".format(lia+1, len(lam)))
-        exp_title = "Experimental setup:\n lambda: {}\n maximal rank: {}\n convergence tol: {}\n max iteration: {}".format(l, r, tau, max_iter)
+        exp_title = "Experimental setup:\n lambda: {}\n maximal rank: {}\n".format(l, r)
+        exp_title += "convergence tol: {}\n max iteration: {}".format(tau, max_iter)
         plot_title = "Reconstruction, lambda: {:.1e}, rank: {}, tol: {:.1e}, max it: {}".format(l, r, tau, max_iter)
         print(exp_title)
         curr_path = export_path + "iter{}/".format(lia)
@@ -250,9 +253,9 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         lcurve.append(lcurve_value_gmrf(Z0, U, V, lapU, lapV))
         U_list.append(U)
         V_list.append(V)
-                
+
         if export_every_lambda_result:
-            
+
             export_dict = {
                 "U": U.tolist(),
                 "V": V.tolist(),
@@ -265,31 +268,34 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
                 "duration": loc_duration
             }
             if Xtrue is not None:
-                export_dict["resT"] = res_true[lia] 
+                export_dict["resT"] = res_true[lia]
             if not os.path.exists(curr_path):
-                os.makedirs(curr_path)        
+                os.makedirs(curr_path)
             with open(curr_path + "result.dat", "w") as fp:
                 json.dump(export_dict, fp)
-            
-            wrap_mp(plot_results, treat_T(U.dot(V)), treat_T(Z0), curr_path + "result.png", plot_title, None if Xtrue is None else treat_T(Xtrue))
-            wrap_mp(plot_residual, res_l[lia], curr_path + "local_res.png", label="local res", ylabel="||X_t - X_{t-1}|| / ||X_{t-1}||", title=plot_title)
-            wrap_mp(plot_residual, res_g[lia], curr_path + "global_res.png", label="global res", ylabel="||Y - X_t||_Omega / ||Y||", title=plot_title)
-            
+
+            wrap_mp(plot_results, treat_T(U.dot(V)), treat_T(Z0), curr_path + "result.png", plot_title,
+                    None if Xtrue is None else treat_T(Xtrue))
+            wrap_mp(plot_residual, res_l[lia], curr_path + "local_res.png",
+                    label="local res", ylabel="||X_t - X_{t-1}|| / ||X_{t-1}||", title=plot_title)
+            wrap_mp(plot_residual, res_g[lia], curr_path + "global_res.png",
+                    label="global res", ylabel="||Y - X_t||_Omega / ||Y||", title=plot_title)
+
             if Xtrue is not None:
-                wrap_mp(plot_residual, res_true[lia], curr_path + "res2full.png", label="res2Full", ylabel="||Y - X_t|| / ||Y||", title=plot_title)
+                wrap_mp(plot_residual, res_true[lia], curr_path + "res2full.png",
+                        label="res2Full", ylabel="||Y - X_t|| / ||Y||", title=plot_title)
     if export_path is not None:
         l_opt = get_corner_node_prune(lcurve)
         try:
             l_opt_mat = get_corner_node_matlab(lcurve, debug=False)
-            
+
             print("L prune: {}".format(l_opt))
             print("L matlab: {}".format(l_opt_mat))
             assert l_opt == l_opt_mat - 1
         except Exception:
             pass
 
-
-        Xh = U_list[l_opt].dot(V_list[l_opt]) 
+        Xh = U_list[l_opt].dot(V_list[l_opt])
         export_dict = {
                 "U": U_list[l_opt].tolist(),
                 "V": V_list[l_opt].tolist(),
@@ -305,13 +311,16 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         if len(res_true) > 0:
             export_dict["resT"] = res_true
         if not os.path.exists(export_path):
-            os.makedirs(export_path)        
+            os.makedirs(export_path)
         with open(export_path + "result.dat", "w") as fp:
             json.dump(export_dict, fp)
-        plot_title = "Reconstruction, lambda: {:.1e}, rank: {}, tol: {:.1e}, max it: {}".format(lam[l_opt], r, tau, max_iter)
+        plot_title = "Reconstruction, lambda: {:.1e}, rank: {}, tol: {:.1e}, max it: {}".format(lam[l_opt], r, tau,
+                                                                                                max_iter)
         wrap_mp(plot_lcurve, lcurve, l_opt, export_path + "lcurve.png")
-        wrap_mp(plot_results, treat_T(Xh), treat_T(Z0), export_path + "result.png", plot_title, None if Xtrue is None else treat_T(Xtrue))
+        wrap_mp(plot_results, treat_T(Xh), treat_T(Z0), export_path + "result.png", plot_title,
+                None if Xtrue is None else treat_T(Xtrue))
         wrap_mp(plot_residual, res_l[l_opt], export_path + "local_res.png", label="local res")
         wrap_mp(plot_residual, res_g[l_opt],  export_path + "global_res.png", label="global res")
         if Xtrue is not None:
-            wrap_mp(plot_residual, curr_result["resT"], curr_path + "res2full.png", label="res2Full", ylabel="||Y - X_t|| / ||Y||", title=plot_title)
+            wrap_mp(plot_residual, curr_result["resT"], curr_path + "res2full.png",
+                    label="res2Full", ylabel="||Y - X_t|| / ||Y||", title=plot_title)

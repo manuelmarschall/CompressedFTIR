@@ -1,13 +1,13 @@
 '''
 License
- 
+
  copyright Manuel Marschall (PTB) 2020
- 
+
  This software is licensed under the BSD-like license:
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
- 
+
  1. Redistributions of source code must retain the above copyright notice,
     this list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright
@@ -26,7 +26,7 @@ License
 Using this software in publications requires citing the following paper
 
 Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
-DOI: ??? 
+DOI: ???
 '''
 import numpy as np
 from compressedftir.utils import sum_sq_nnz
@@ -54,6 +54,7 @@ try:
             self._data = arr.ravel(order='F')
 
     _wrappers = {}
+
     def _define_wrapper(matlab_type, numpy_type):
         t = type(matlab_type.__name__, (matlab_type,), dict(
             __init__=_wrapper__init__,
@@ -84,6 +85,7 @@ try:
 except Exception:
     pass
 
+
 def lcurve_value_gmrf(Z0, U, V, lapU, lapV):
     """
     computes the argument and values of an lcurve result,
@@ -103,18 +105,23 @@ def lcurve_value_gmrf(Z0, U, V, lapU, lapV):
     Xh = U.dot(V)
     dd = Xh - Z0
     # order="C" due to the kronecker structure of the regularization matrices
-    return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0), U.reshape(-1, order="C").dot(lapU.dot(U.reshape(-1, order="C"))) + V.reshape(-1, order="C").dot(lapV.dot(V.reshape(-1, order="C")))]
-    # return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0), U.reshape(-1, order="F").dot(lapU.dot(U.reshape(-1, order="F"))) + V.reshape(-1, order="F").dot(lapV.dot(V.reshape(-1, order="F")))]
+    return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0),
+            U.reshape(-1, order="C").dot(lapU.dot(U.reshape(-1, order="C")))
+            + V.reshape(-1, order="C").dot(lapV.dot(V.reshape(-1, order="C")))]
+    # return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0),
+    #         U.reshape(-1, order="F").dot(lapU.dot(U.reshape(-1, order="F")))
+    #         + V.reshape(-1, order="F").dot(lapV.dot(V.reshape(-1, order="F")))]
+
 
 def get_corner_node_matlab(lcurve, debug=False):
     """
     Computes the optimal argument of a given l-curve.
-    Note: Only approximately and discrete. 
-    TODO: More elaborate using interpolation/extrapolation and 
+    Note: Only approximately and discrete.
+    TODO: More elaborate using interpolation/extrapolation and
           analytical differentiation.
           Or implement https://arxiv.org/abs/1608.04571
 
-    Arguments:      
+    Arguments:
         lcurve {list} -- l-curve [[x1, y1], [x2, y2], ...]
 
     Returns:
@@ -145,7 +152,8 @@ def get_corner_node_matlab(lcurve, debug=False):
         import matplotlib.pyplot as plt
         plt.figure()
         plt.title("L-curve")
-        plt.plot([np.log10(lcurve[lia][0]) for lia in range(len(lcurve))], [np.log10(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
+        plt.plot([np.log10(lcurve[lia][0]) for lia in range(len(lcurve))],
+                 [np.log10(lcurve[lia][1]) for lia in range(len(lcurve))], '-xb', label="L-curve")
         plt.plot(np.log10(lcurve[l_opt][0]), np.log10(lcurve[l_opt][1]), 'or', label="optimal value")
         plt.xlabel("log(|| Y - UV ||)")
         plt.ylabel("log(|| L_U U || + || L_V V ||)")
@@ -153,15 +161,16 @@ def get_corner_node_matlab(lcurve, debug=False):
 
     return l_opt
 
+
 def get_corner_node_prune(lcurve):
     """
     Computes the optimal argument for a given L-curve.
     Implements the python version of the matlab corner method of
     % Per Christian Hansen and Toke Koldborg Jensen, DTU Compute, DTU;
     % Giuseppe Rodriguez, University of Cagliari, Italy; Sept. 2, 2011.
-    motivated by the Reference: P. C. Hansen, T. K. Jensen and G. Rodriguez, 
-    "An adaptive pruning algorithm for the discrete L-curve criterion," 
-    J. Comp. Appl. Math., 198 (2007), 483-492. 
+    motivated by the Reference: P. C. Hansen, T. K. Jensen and G. Rodriguez,
+    "An adaptive pruning algorithm for the discrete L-curve criterion,"
+    J. Comp. Appl. Math., 198 (2007), 483-492.
 
     Arguments:
         lcurve {list} -- L-curve [[x1, y1], [x2, y2], ...]
@@ -202,14 +211,12 @@ def get_corner_node_prune(lcurve):
     W[:, 1] = V[:, 1]/v
     clist = []                                      # list of condidates
     p = np.min([5, nP])                             # number of vectors in pruned L-curve
-    convex = 0                                      # Are the pruned L-curves convex
-    I = np.argsort(v)[::-1]                         # Sort lengths decending
+    # convex = 0                                    # Are the pruned L-curves convex
+    Ind = np.argsort(v)[::-1]                       # Sort lengths decending
     while p < (nP-1)*2:
-        elmts = np.sort(I[:np.min([p, nP-1])])
+        elmts = np.sort(Ind[:np.min([p, nP-1])])
         candidate = Angles(W[elmts, :], elmts)
         # print("candidate p={}, {}".format(p, candidate))
-        if candidate > 0:
-            convex = 1
         if candidate not in clist:
             clist.append(candidate)
         candidate = Global_Behaviour(P, W[elmts, :], elmts)
@@ -218,13 +225,13 @@ def get_corner_node_prune(lcurve):
         p = p*2
         # print(clist)
     if 0 not in clist:
-        clist.insert(0, 0)  
+        clist.insert(0, 0)
     clist = np.sort(clist)
 
     vz = np.argwhere(np.diff(P[clist, 1]) >= np.abs(np.diff(P[clist, 0])))
     if len(vz) > 1:
         if vz[0] == 0:
-            vz = vz[1:] 
+            vz = vz[1:]
     elif len(vz) == 1:
         if vz[0] == 0:
             vz = []
@@ -233,7 +240,7 @@ def get_corner_node_prune(lcurve):
     else:
         vects = np.array([P[clist[1:], 0] - P[clist[:-1], 0], P[clist[1:], 1] - P[clist[:-1], 1]]).T
         vects = np.dot(np.diag(1/np.sqrt(np.sum(vects**2, 1))), vects)
-        delta = vects[:-1, 0] * vects[1:, 1]- vects[1:, 0] * vects[:-1, 1]
+        delta = vects[:-1, 0] * vects[1:, 1] - vects[1:, 0] * vects[:-1, 1]
         vv = np.argwhere(delta[vz-1] <= 0)
         # print(vv)
         # print(vz)
@@ -243,17 +250,19 @@ def get_corner_node_prune(lcurve):
             index = clist[vz[vv[0]]]
     return int(index)
 
+
 def Angles(W, kv):
     delta = W[:-1, 0]*W[1:, 1] - W[1:, 0]*W[:-1, 1]
     # print("delta: \n {}".format(delta))
     mm = np.min(delta)
     kk = np.argmin(delta)
     # print("mm {}, kk {}, kv(kk)= {}".format(mm, kk, kv[kk]))
-    if mm < 0 :                                     # is it really a corner
+    if mm < 0:                                      # is it really a corner
         index = kv[kk] + 1
     else:                                           # if there is no corner: 0
         index = 0
-    return index        
+    return index
+
 
 def Global_Behaviour(P, vects, elmts):
     hwedge = np.abs(vects[:, 1])
@@ -262,25 +271,27 @@ def Global_Behaviour(P, vects, elmts):
     ln = len(In)-1
     mn = In[0]
     mx = In[-1]
-    while mn>=mx:
+    while mn >= mx:
         mx = np.max([mx, In[ln-count]])
         count = count + 1
         mn = np.min([mn, In[count]])
     if count > 1:
-        I = 0; J = 0
+        Ind = 0
+        J = 0
         for i in range(count):
             for j in range(ln, ln-count, -1):
                 if In[i] < In[j]:
-                    I = In[i]
+                    Ind = In[i]
                     J = In[j]
                     break
-            if I > 0:
+            if Ind > 0:
                 break
     else:
-        I = In[0]
+        Ind = In[0]
         J = In[ln]
-    
-    x3 = P[elmts[J]+1, 0] + (P[elmts[I], 1] - P[elmts[J]+1, 1])/(P[elmts[J]+1, 1]-P[elmts[J],1])*(P[elmts[J]+1, 0]-P[elmts[J],0])
-    origin = np.array([x3, P[elmts[I], 1]]).T
+
+    x3 = P[elmts[J]+1, 0] + (P[elmts[Ind], 1] - P[elmts[J]+1, 1]) / \
+        (P[elmts[J]+1, 1]-P[elmts[J], 1])*(P[elmts[J]+1, 0]-P[elmts[J], 0])
+    origin = np.array([x3, P[elmts[Ind], 1]]).T
     dists = (origin[0] - P[:, 0])**2 + (origin[1]-P[:, 1])**2
     return np.argmin(dists)
