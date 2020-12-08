@@ -183,12 +183,12 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
 
     def treat_T(T):
         return T[:, int(t/2)].reshape([n, m]) if d3_flag else T
+        # return T[:, int(203)].reshape([n, m]) if d3_flag else T
     U_list = []
     V_list = []
     res_l = []
     res_g = []
-    if Xtrue is not None:
-        res_true = []
+    res_true = []
     lcurve = []
     print("Get regularizer")
     if not d3_flag:
@@ -308,8 +308,9 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
                 "starttime": glob_start_time,
                 "duration": time.time() - glob_start_time
             }
-        if len(res_true) > 0:
-            export_dict["resT"] = res_true
+        if Xtrue is not None:
+            if len(res_true) > 0:
+                export_dict["resT"] = res_true
         if not os.path.exists(export_path):
             os.makedirs(export_path)
         with open(export_path + "result.dat", "w") as fp:
