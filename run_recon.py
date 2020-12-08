@@ -110,7 +110,7 @@ def runLeishmania_FPA_test():
     Xomega = subsample_3d_data(Xtrue, p)
     # the data is given as a 3D datacube having (x, y, t) two spatial dimensions (x,y) and
     # a measurement dependent third dimension
-    
+
     # Note where the results should be exported to
     exportpath = "testdata/Leishmania_Ltar/samplerun_015p/"
     export_every_lambda_result = True       # Flag to export every l-curve value result
@@ -126,8 +126,8 @@ def runLeishmania_FPA_test():
 
 
 if __name__ == "__main__":
-    # run2Dtest()
-    runLeishmania_AFM_IR_test()
+    run2Dtest()
+    # runLeishmania_AFM_IR_test()
 
     # The results are now stored in the defined 'exportpath' and can be read from disc
     # using json.

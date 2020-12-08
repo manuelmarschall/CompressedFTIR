@@ -104,6 +104,7 @@ def lcurve_value_gmrf(Z0, U, V, lapU, lapV):
     nnz = np.nonzero(Z0)
     Xh = U.dot(V)
     dd = Xh - Z0
+    # TODO: This is really an issue. In 2D this does not work. Is it ok in 3D?
     # order="C" due to the kronecker structure of the regularization matrices
     return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0),
             U.reshape(-1, order="C").dot(lapU.dot(U.reshape(-1, order="C")))
@@ -236,6 +237,7 @@ def get_corner_node_prune(lcurve):
         if vz[0] == 0:
             vz = []
     if vz == [] or len(vz) == 0:
+        # if vz.size <= 0:
         index = clist[-1]
     else:
         vects = np.array([P[clist[1:], 0] - P[clist[:-1], 0], P[clist[1:], 1] - P[clist[:-1], 1]]).T
@@ -245,10 +247,17 @@ def get_corner_node_prune(lcurve):
         # print(vv)
         # print(vz)
         if vv == [] or len(vv) == 0:
+            # if vv.size <= 0:
             index = clist[vz[-1]]
         else:
             index = clist[vz[vv[0]]]
-    return int(index)
+
+    try:
+        retval = int(index)
+    except TypeError:
+        print("index!!!!: {}".format(index))
+        retval = int(index[0])
+    return retval
 
 
 def Angles(W, kv):
