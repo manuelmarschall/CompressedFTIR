@@ -35,6 +35,53 @@ from compressedftir.utils import stop_at_exception
 import os
 
 
+def load_122020_mat(filepath):
+    """
+    Loads a matlab .mat file.
+    Assumes the .mat container has a field `data1` and is given as a 3D container.
+    Here, the dimensions of the data was 55x55x45 for all
+    measurements conducted.
+    Together with `data1` a 3D tensor of the same size is given, that indicates
+    the size of the actual measurand. `rows_in1` is a 55x55x45 tensor of integers
+    indicating the index of the measurement on the interferometer axis
+
+    Arguments:
+        filepath {str} -- path to file
+
+    Raises:
+        KeyError: data1 key not in container
+
+    Returns:
+        array-like -- 3D data cube
+    """
+
+    tab = loadmat(filepath)
+    assert isinstance(tab, dict)
+
+    n = 55
+    try:
+        data = np.array(tab["data1"])          # Data is already a tensor
+    except KeyError:
+        raise KeyError("data1 is not in struct, which is expected to be included")
+
+    try:
+        indices = np.array(tab["rows_in1"])          # Data is already a tensor
+    except KeyError:
+        raise KeyError("rows_in1 is not in struct, which is expected to be included")
+
+    try:
+        size_N = int(np.array(tab["N"]))          # Size of interferometer axis (integer)
+    except KeyError:
+        raise KeyError("N is not in struct, which is expected to be included")
+
+    # the respective conversion (super-resolution) according to
+    retval = np.zeros((n, n, size_N))
+    for lia in range(indices.shape[2]):
+        retval[:, :, indices[0, 0, lia]] = data[:, :, lia]
+
+    return retval
+
+
 def load_FPA_mat(filepath):
     """
     Loads a matlab .mat file.
@@ -175,7 +222,8 @@ def load_data_file(filepath, format_hint=None):
         raise IOError("file does not exist: {}".format(filepath))
 
     known_file_hints = ["afm-ir",
-                        "leishmania-fpa"]
+                        "leishmania-fpa",
+                        "122020"]
 
     if format_hint is None:
         # check for file suffix, as no hint is given
@@ -198,6 +246,10 @@ def load_data_file(filepath, format_hint=None):
         if not np.char.endswith(filepath, ".mat"):
             raise ValueError("unknown file suffix. Assuming .mat file")
         retval = load_FPA_mat(filepath)
+    elif format_hint == "122020":
+        if not np.char.endswith(filepath, ".mat"):
+            raise ValueError("unknown file suffix. Assuming .mat file")
+        retval = load_122020_mat(filepath)
     else:
         raise ValueError("Unknown format_hint: {}\n chose from {}".format(format_hint, known_file_hints))
     return retval
