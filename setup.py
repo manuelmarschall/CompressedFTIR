@@ -51,7 +51,7 @@ setuptools.setup(
 
     long_description_content_type="text/markdown",
 
-    url="<https://github.com/manuelmarschall/CompressedFTIR>",
+    url="https://github.com/manuelmarschall/CompressedFTIR",
 
     # packages=setuptools.find_packages(),
     packages=["compressedftir"],
