@@ -1,12 +1,12 @@
 # License
- 
+
  copyright Manuel Marschall (PTB) 2020
- 
+
  This software is licensed under the BSD-like license:
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
- 
+
  1. Redistributions of source code must retain the above copyright notice,
     this list of conditions and the following disclaimer.
  2. Redistributions in binary form must reproduce the above copyright
@@ -24,14 +24,15 @@
 
 Using this software in publications requires citing the following paper
 
-Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
-DOI: ??? 
+Compressed FTIR spectroscopy using low-rank matrix reconstruction
+DOI: https://doi.org/10.1364/OE.404959
 
 
 ## References
 
 This repository contains the python code that is used in the paper 
-* [1] Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear).
+* [1] Compressed FTIR spectroscopy using low-rank matrix reconstruction, Optics Express Vol. 28, Issue 26, pp. 38762-38772 (2020) 
+
 
 ## Motivation
 Reducing measurement times and datasets by implementing reconstruction methods is a usual mathematical tool.
@@ -48,14 +49,10 @@ To run the library one needs a $\geq$ python 3.6 installation with the python pa
 
 Install via the python package manager `pip` using
 
-TODO
-
-<!---
 ```
   pip install compressedftir
 ```
-
---> 
+### Basic Python installation 
 
 Guides to install python under Linux, Windows and Mac can be found here: https://realpython.com/installing-python/
 
@@ -92,7 +89,7 @@ Guides to install python under Linux, Windows and Mac can be found here: https:/
 
 Some features and important files are mentioned in the following
 
-* `run_recon.py` is a run script and contains a dummy 2D example using an l-curve criterion for choosing the regularization parameter in a smoothed matrix reconstruction approach. 
+* `paper_leishmania/run_recon.py` is a run script and contains a dummy 2D example using an l-curve criterion for choosing the regularization parameter in a smoothed matrix reconstruction approach. You should get started here. Other scripts in this directory require additional data that are not available online.
 * `compressedftir.datareader` implements a variety of data formats and can be adapted to your file format
 * `compressedftir.reconstruction.lowrank` implements the code that is described in the paper [1]
 

@@ -26,8 +26,9 @@ License
 Using this software in publications requires citing the following paper
 
 Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
-DOI: ???
+DOI: https://doi.org/10.1364/OE.404959
 '''
+
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -38,7 +39,7 @@ setuptools.setup(
 
     name="compressedftir",  # Replace with your username
 
-    version="0.0.1",
+    version="0.0.2",
 
     author="Manuel Marschall",
 

@@ -1,5 +1,35 @@
+'''
+License
+
+ copyright Manuel Marschall (PTB) 2020
+
+ This software is licensed under the BSD-like license:
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions are met:
+
+ 1. Redistributions of source code must retain the above copyright notice,
+    this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the distribution.
+
+ DISCLAIMER
+ ==========
+ This software was developed at Physikalisch-Technische Bundesanstalt
+ (PTB). The software is made available "as is" free of cost. PTB assumes
+ no responsibility whatsoever for its use by other parties, and makes no
+ guarantees, expressed or implied, about its quality, reliability, safety,
+ suitability or any other characteristic. In no event will PTB be liable
+ for any direct, indirect or consequential damage arising in connection
+
+Using this software in publications requires citing the following paper
+
+Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
+DOI: https://doi.org/10.1364/OE.404959
+'''
+
 import numpy as np
-from matplotlib import ticker
 import matplotlib.pyplot as plt
 import matplotlib.animation as manimation
 import matplotlib.gridspec as grd
@@ -10,10 +40,10 @@ import json
 import matplotlib.pylab as pylab
 params = {'legend.fontsize': 'small',
           'figure.figsize': (15, 5),
-         'axes.labelsize': 'small',
-         'axes.titlesize': 'small',
-         'xtick.labelsize': 'small',
-         'ytick.labelsize': 'small'}
+          'axes.labelsize': 'small',
+          'axes.titlesize': 'small',
+          'xtick.labelsize': 'small',
+          'ytick.labelsize': 'small'}
 pylab.rcParams.update(params)
 """ reads all relevant information about the dataset, the approximation and the optimization
     to create a video to display the results, together with an image presenting the convergence.
@@ -42,7 +72,7 @@ print("read approximation result")
 # Xgmrf = sio.loadmat("{}Xgmrf.mat".format(result_path))
 # Xgmrf = Xgmrf["Xgmrf"]
 path = "testdata/Leishmania_Ltar/samplerun_005p/iter7/"
-    
+
 with open(path + "result.dat", "r") as fp:
     res = json.load(fp)
 U, V = np.array(res["U"]), np.array(res["V"])
@@ -115,13 +145,13 @@ with writer.saving(fig, "{}visualization.mp4".format("testdata/Leishmania_Ltar/"
         im_true.set_clim(vmin=np.min(Xtrue[:, idx]), vmax=np.max(Xtrue[:, idx]))
         im_approx.set_data(Xgmrf.reshape([n, n, -1], order="C")[:, :, idx].T)
         im_approx.set_clim(vmin=np.min(Xtrue[:, idx]), vmax=np.max(Xtrue[:, idx]))
-        
+
         im_diff.set_data((Xtrue - Xgmrf).reshape([n, n, -1], order="C")[:, :, idx].T)
         im_diff.set_clim(vmin=np.min(Xtrue[:, idx] - Xgmrf[:, idx]), vmax=np.max(Xtrue[:, idx] - Xgmrf[:, idx]))
 
         cbardiff_ticks = np.linspace(np.min(Xtrue[:, idx] - Xgmrf[:, idx]), np.max(Xtrue[:, idx] - Xgmrf[:, idx]), num=11, endpoint=True)
         cbar_diff.ax.set_yticklabels(["{:1.2g}".format(i) for i in cbardiff_ticks])
-        
+
         cbar_ticks = np.linspace(np.min(Xtrue[:, idx]), np.max(Xtrue[:, idx]), num=11, endpoint=True)
         # cbar.set_ticks(cbar_ticks) 
         cbar.ax.set_yticklabels(["{:1.2g}".format(i) for i in cbar_ticks])
