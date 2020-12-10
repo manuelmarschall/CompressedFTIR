@@ -163,12 +163,16 @@ def build_neighbour_matrix(n, m):
     su = np.sum(Kcol_A_py, axis=0).T
     Kcol_A_py = lil_matrix(-Kcol_A_py)
     Kcol_A_py[2:, 0] = 0
-    Kcol_A_py[n, 0] = -1
-    Kcol_A_py[n+1, 0] = -1
+    if m > 1:
+        Kcol_A_py[n, 0] = -1
+        Kcol_A_py[n+1, 0] = -1
     Kcol_A_py[1, 0] = -1
 
     Kcol_A_py.setdiag(su, 0)
-    Kcol_A_py[0, 0] = 3
+    if m > 1:
+        Kcol_A_py[0, 0] = 3
+    else:
+        Kcol_A_py[0, 0] = 1
     dist = Kcol_A_py
 
     # This is the old, slow but safe version. Really iterating over everything
@@ -283,7 +287,10 @@ def scipy_block_diag(mats, format=None, dtype=None):
 
 def get_regularizer(n, m, t, r):
     Kcol_A = csr_matrix(build_neighbour_matrix(int(n), int(m)))
-    Kcol_B = speye(t)
+    # Kcol_B = speye(t)
+    Kcol_B = csr_matrix(build_neighbour_matrix(int(t), 1))
+
+    exit()
     # build regularization matrices
     lapU = spkron(Kcol_A, speye(r))
     lapV = spkron(Kcol_B, speye(r))

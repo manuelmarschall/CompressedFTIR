@@ -45,6 +45,7 @@ def load_122020_mat(filepath):
     the size of the actual measurand. `rows_in1` is a 55x55x45 tensor of integers
     indicating the index of the measurement on the interferometer axis
 
+    WARNING: The data is complex valued
     Arguments:
         filepath {str} -- path to file
 
@@ -75,7 +76,7 @@ def load_122020_mat(filepath):
         raise KeyError("N is not in struct, which is expected to be included")
 
     # the respective conversion (super-resolution) according to
-    retval = np.zeros((n, n, size_N))
+    retval = np.zeros((n, n, size_N), dtype=np.complex)
     for lia in range(indices.shape[2]):
         retval[:, :, indices[0, 0, lia]] = data[:, :, lia]
 
