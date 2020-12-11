@@ -39,7 +39,7 @@ setuptools.setup(
 
     name="compressedftir",  # Replace with your username
 
-    version="0.0.2",
+    version="0.0.3",
 
     author="Manuel Marschall",
 
