@@ -26,7 +26,7 @@ License
 Using this software in publications requires citing the following paper
 
 Compressed FTIR spectroscopy using low-rank matrix reconstruction (to appear in Optics Express)
-DOI: ???
+DOI: https://doi.org/10.1364/OE.404959
 '''
 import multiprocessing as mp
 from compressedftir.utils import stop_at_exception
