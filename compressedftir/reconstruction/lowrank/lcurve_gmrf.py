@@ -35,7 +35,7 @@ from compressedftir.mp_utils import wrap_mp
 from compressedftir.lcurve import (lcurve_value_gmrf, get_corner_node_matlab, get_corner_node_prune)
 import numpy as np
 import os
-import json
+import json_tricks as json
 import time
 import matplotlib
 import matplotlib.pyplot as plt
@@ -100,35 +100,35 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
                               allows comparison (default: {None})
     """
     if Xtrue is not None:
-        vmin = np.min(Xtrue)
-        vmax = np.max(Xtrue)
+        vmin = np.min(np.real(Xtrue))
+        vmax = np.max(np.real(Xtrue))
         fig = plt.figure(figsize=(20, 5))
         plt.subplot(141)
         plt.title("Full dataset")
-        im = plt.imshow(Xtrue, vmin=vmin, vmax=vmax)
+        im = plt.imshow(np.real(Xtrue), vmin=vmin, vmax=vmax)
         plt.colorbar(im)
         plt.subplot(142)
         plt.title("Reconstruction")
-        im = plt.imshow(Xh, vmin=vmin, vmax=vmax)
+        im = plt.imshow(np.real(Xh), vmin=vmin, vmax=vmax)
         plt.colorbar(im)
         plt.subplot(143)
         plt.title("Difference")
-        im = plt.imshow(Xtrue - Xh)
+        im = plt.imshow(np.real(Xtrue - Xh))
         plt.colorbar(im)
         plt.subplot(144)
         plt.title("Sampleset")
-        im = plt.imshow(Z0, vmin=vmin, vmax=vmax)
+        im = plt.imshow(np.real(Z0), vmin=vmin, vmax=vmax)
         plt.colorbar(im)
         plt.tight_layout()
     else:
         fig = plt.figure(figsize=(8, 4))
         plt.subplot(121)
         plt.title("Reconstruction")
-        im = plt.imshow(Xh)
+        im = plt.imshow(np.real(Xh))
         plt.colorbar(im)
         plt.subplot(122)
         plt.title("Sampleset")
-        im = plt.imshow(Z0)
+        im = plt.imshow(np.real(Z0))
         plt.colorbar(im)
         plt.tight_layout()
     plt.suptitle(title)

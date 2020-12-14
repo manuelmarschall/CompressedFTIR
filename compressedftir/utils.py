@@ -65,7 +65,7 @@ def sum_sq_nnz(nnz, arr):
         float -- $sum{(i, j) in Omega} A[i, j]^2$
     """
 
-    return np.sum([arr[x, y]**2 for (x, y) in zip(*nnz)])
+    return np.sum([np.abs(arr[x, y])**2 for (x, y) in zip(*nnz)])
 
 
 def neighbors(X, Y, x, y):
@@ -287,10 +287,8 @@ def scipy_block_diag(mats, format=None, dtype=None):
 
 def get_regularizer(n, m, t, r):
     Kcol_A = csr_matrix(build_neighbour_matrix(int(n), int(m)))
-    # Kcol_B = speye(t)
-    Kcol_B = csr_matrix(build_neighbour_matrix(int(t), 1))
-
-    exit()
+    Kcol_B = speye(t)
+    # Kcol_B = csr_matrix(build_neighbour_matrix(int(t), 1))
     # build regularization matrices
     lapU = spkron(Kcol_A, speye(r))
     lapV = spkron(Kcol_B, speye(r))
@@ -394,3 +392,30 @@ def subsample_3d_data(Xtrue, p):
     P = under_sampling(*Xtrue.shape, p)
     Xomega = np.where(P == 1, Xtrue, 0)
     return Xomega
+
+
+def hermitiantranspose(mat):
+    """
+    returns the conjugate transpose of a matrix.
+    Also known as hermitian transpose
+
+    Arguments:
+        mat {np.ndarray} -- matrix to take conj. transpose
+
+    Returns:
+        np.ndarray -- mat*
+    """
+    return np.conj(np.transpose(mat))
+
+
+def ht(mat):
+    """
+    Short for hermitian transpose
+
+    Arguments:
+        mat {np.ndarray} -- matrix to take conj. transpose
+
+    Returns:
+        np.ndarray -- mat*
+    """
+    return hermitiantranspose(mat)

@@ -107,8 +107,8 @@ def lcurve_value_gmrf(Z0, U, V, lapU, lapV):
     # TODO: This is really an issue. In 2D this does not work. Is it ok in 3D?
     # order="C" due to the kronecker structure of the regularization matrices
     return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0),
-            U.reshape(-1, order="C").dot(lapU.dot(U.reshape(-1, order="C")))
-            + V.reshape(-1, order="C").dot(lapV.dot(V.reshape(-1, order="C")))]
+            np.conj(U).reshape(-1, order="C").dot(lapU.dot(U.reshape(-1, order="C")))
+            + np.conj(V).reshape(-1, order="C").dot(lapV.dot(V.reshape(-1, order="C")))]
     # return [sum_sq_nnz(nnz, dd)/sum_sq_nnz(nnz, Z0),
     #         U.reshape(-1, order="F").dot(lapU.dot(U.reshape(-1, order="F")))
     #         + V.reshape(-1, order="F").dot(lapV.dot(V.reshape(-1, order="F")))]

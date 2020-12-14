@@ -33,7 +33,7 @@ import numpy as np
 from scipy.linalg import svd
 from scipy.sparse import (csr_matrix)
 from scipy.sparse.linalg import spsolve
-from compressedftir.utils import (scipy_block_diag, relative_residual)
+from compressedftir.utils import (scipy_block_diag, relative_residual, ht)
 # import time
 
 
@@ -65,7 +65,7 @@ def updateU(_V, Xomega, curr_r, nnz, lmb=0.0, lap=None):
     """
     hlp = []
     _n, _m = Xomega.shape
-    VY = np.zeros((curr_r, _n))
+    VY = np.zeros((curr_r, _n), dtype=Xomega.dtype)
     zm = csr_matrix((curr_r, curr_r))
     # start = time.time()
     for k in range(_n):
@@ -87,6 +87,7 @@ def updateU(_V, Xomega, curr_r, nnz, lmb=0.0, lap=None):
     # print("Start spsolve")
     rhs = VY.ravel(order="F")
     # print("rhs raveled")
+    # TODO: Here ht?
     retval = spsolve(H, rhs).reshape((curr_r, _n), order="F").T
     # print("U solve: {}".format(time.time()-start))
     return retval
@@ -120,13 +121,13 @@ def updateV(_U, Xomega, curr_r, nnz, lmb=0.0, lap=None):
     """
     hlp = []
     _n, _m = Xomega.shape
-    UY = np.zeros((curr_r, _m))
+    UY = np.zeros((curr_r, _m), dtype=Xomega.dtype)
     # start = time.time()
     for k in range(_m):
         ind = nnz[k]
         UO = _U[ind, :]
         hlp.append(csr_matrix(np.dot(UO.T, UO)))
-        UY[:, k] = np.dot(Xomega[ind, k].T, UO)
+        UY[:, k] = np.dot(np.transpose(Xomega[ind, k]), UO)
     # print("V loop: {}".format(time.time()-start))
     # start = time.time()
     if lap is None:
@@ -182,7 +183,7 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
         Z = Z[:r, :]
         # distribute the singular values to U and V
         U = W*Lambda**(0.5)          # shape (n, r)
-        V = (Z.T*Lambda**(0.5)).T    # shape (r, m)
+        V = ht(ht(Z)*Lambda**(0.5))  # shape (r, m)
     else:
         print("initial value given")
         U = iv_U
