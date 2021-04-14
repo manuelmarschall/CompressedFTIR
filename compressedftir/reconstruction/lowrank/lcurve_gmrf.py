@@ -137,7 +137,7 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
 
 
 def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, export_every_lambda_result=False, Xtrue=None,
-                      load=False):
+                      load=False, bg=None):
     """
     start method of the reconstruction. calls the solver iteratively using the given lambda values in lam.
     Saves the results and plots.
@@ -207,7 +207,8 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         "nnz_Z0_V": nnzV,
         "Xtrue": Xtrue,
         "iv_U": None,
-        "iv_V": None
+        "iv_V": None,
+        "bg": bg
     }
 
     # start iteration over L-curve items
@@ -265,7 +266,8 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
                 "resL": res_l[lia],
                 "resG": res_g[lia],
                 "starttime": loc_start_time,
-                "duration": loc_duration
+                "duration": loc_duration,
+                "bg": bg.tolist() if bg is not None else [0]
             }
             if Xtrue is not None:
                 export_dict["resT"] = res_true[lia]
@@ -296,6 +298,8 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
             pass
 
         Xh = U_list[l_opt].dot(V_list[l_opt])
+        if bg is not None:
+            Xh = Xh + bg
         export_dict = {
                 "U": U_list[l_opt].tolist(),
                 "V": V_list[l_opt].tolist(),
@@ -306,7 +310,8 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
                 "resL": res_l,
                 "resG": res_g,
                 "starttime": glob_start_time,
-                "duration": time.time() - glob_start_time
+                "duration": time.time() - glob_start_time,
+                "bg": bg.tolist() if bg is not None else [0]
             }
         if Xtrue is not None:
             if len(res_true) > 0:

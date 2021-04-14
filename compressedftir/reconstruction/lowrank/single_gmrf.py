@@ -141,7 +141,7 @@ def updateV(_U, Xomega, curr_r, nnz, lmb=0.0, lap=None):
     return retval
 
 
-def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, Xtrue=None, iv_U=None, iv_V=None):
+def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, Xtrue=None, iv_U=None, iv_V=None, bg=None):
     """
     Reconstructs a low-rank model UV to fit the data Xomega.
     Assumes a fixed rank r
@@ -209,7 +209,7 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
         resG.append(relative_residual(Xomega, Xt, check_nnz=True))
         if Xtrue is not None:
             # print("Compute residual to truth")
-            resT.append(relative_residual(Xtrue, Xt))
+            resT.append(relative_residual(Xtrue, Xt + bg if bg is not None else Xt))
             print("it: {:2d}/{}, local res: {:.2e}, global res: {:.2e}, res2Full: {:.2e}".format(t+1, T, resL[-1],
                                                                                                  resG[-1], resT[-1]))
         else:
