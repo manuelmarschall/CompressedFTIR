@@ -35,6 +35,35 @@ from compressedftir.utils import stop_at_exception
 import os
 
 
+def load_liquid_mat(filepath):
+    """
+    Loads a matlab .mat file.
+    Assumes the .mat container has a field `tensor` and is given as a 3D container.
+    Here, the dimensions of the data was 20x10x684 for all
+    measurements conducted.
+
+    Arguments:
+        filepath {str} -- path to file
+
+    Raises:
+        KeyError: tensor key not in container
+
+    Returns:
+        array-like -- 3D data cube
+    """
+
+    tab = loadmat(filepath)
+    assert isinstance(tab, dict)
+
+    try:
+        data = np.array(tab["tensor"])          # Data is already a tensor
+    except KeyError:
+        raise KeyError("tensor is not in struct, which is expected to be included")
+
+    assert data.shape == (20, 10, 684)
+    return data
+
+
 def load_122020_mat(filepath):
     """
     Loads a matlab .mat file.
@@ -224,7 +253,8 @@ def load_data_file(filepath, format_hint=None):
 
     known_file_hints = ["afm-ir",
                         "leishmania-fpa",
-                        "122020"]
+                        "122020",
+                        "liquid"]
 
     if format_hint is None:
         # check for file suffix, as no hint is given
@@ -251,6 +281,10 @@ def load_data_file(filepath, format_hint=None):
         if not np.char.endswith(filepath, ".mat"):
             raise ValueError("unknown file suffix. Assuming .mat file")
         retval = load_122020_mat(filepath)
+    elif format_hint == "liquid":
+        if not np.char.endswith(filepath, ".mat"):
+            raise ValueError("unknown file suffix. Assuming .mat file")
+        retval = load_liquid_mat(filepath)
     else:
         raise ValueError("Unknown format_hint: {}\n chose from {}".format(format_hint, known_file_hints))
     return retval
