@@ -39,7 +39,7 @@ import json_tricks as json
 import time
 import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 
 
 def plot_lcurve(lcurve, l_opt, export_path):
@@ -137,7 +137,7 @@ def plot_results(Xh, Z0, export_path, title="", Xtrue=None):
 
 
 def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, export_every_lambda_result=False, Xtrue=None,
-                      load=False, bg=None):
+                      load=False, bg=None, nnz_U=None, nnz_V=None):
     """
     start method of the reconstruction. calls the solver iteratively using the given lambda values in lam.
     Saves the results and plots.
@@ -167,12 +167,18 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
             stop_at_exception(ValueError("You need to provide an export_path to allow exporting every step"))
     if len(Z0.shape) == 3:
         n, m, t = Z0.shape
-        Z0 = Z0.reshape([-1, t])
+        Z0 = Z0.reshape([-1, t], order="F")
         if Xtrue is not None:
             assert Xtrue.shape[0] == n
             assert Xtrue.shape[1] == m
             assert Xtrue.shape[2] == t
-            Xtrue = Xtrue.reshape([-1, t])
+            Xtrue = Xtrue.reshape([-1, t], order="F")
+        
+        if bg is not None:
+            assert bg.shape[0] == n
+            assert bg.shape[1] == m
+            assert bg.shape[2] == t
+            bg = bg.reshape([-1, t], order="F")
         d3_flag = True
     elif len(Z0.shape) == 2:
         t = -1
@@ -182,7 +188,7 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         raise ValueError("Shape of matrix not supported: {}".format(Z0.shape))
 
     def treat_T(T):
-        return T[:, int(t/2)].reshape([n, m]) if d3_flag else T
+        return T[:, int(t/2)].reshape([n, m], order="F") if d3_flag else T
         # return T[:, int(203)].reshape([n, m]) if d3_flag else T
     U_list = []
     V_list = []
@@ -195,7 +201,10 @@ def do_reconstruction(Z0, r, lam, tau=1e-2, max_iter=50, export_path=None, expor
         lapU, lapV = get_regularizer(np.sqrt(n), np.sqrt(n), Z0.shape[1], r)
     else:
         lapU, lapV = get_regularizer(n, m, Z0.shape[1], r)
-    nnzU, nnzV = get_nnz_indices(Z0)
+    if nnz_U is None or nnz_V is None:
+        nnzU, nnzV = get_nnz_indices(Z0)
+    else:
+        nnzU, nnzV = nnz_U, nnz_V
     solver_info = {
         "Xomega": Z0,
         "r": r,

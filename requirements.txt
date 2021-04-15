@@ -1,0 +1,5 @@
+numpy>=1.17
+scipy>=1.5
+matplotlib
+packaging
+json-tricks

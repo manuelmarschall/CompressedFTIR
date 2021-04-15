@@ -32,7 +32,10 @@ DOI: https://doi.org/10.1364/OE.404959
 import numpy as np
 from scipy.linalg import svd
 from scipy.sparse import (csr_matrix)
-from scipy.sparse.linalg import spsolve
+try:
+    from pypardiso import spsolve
+except:
+    from scipy.sparse.linalg import spsolve
 from compressedftir.utils import (scipy_block_diag, relative_residual, ht)
 # import time
 
@@ -85,10 +88,14 @@ def updateU(_V, Xomega, curr_r, nnz, lmb=0.0, lap=None):
         H = H + lmb*lap
     # start = time.time()
     # print("Start spsolve")
+    # rhs = VY.ravel(order="F")
+    # changed 15.04.21
     rhs = VY.ravel(order="F")
     # print("rhs raveled")
     # TODO: Here ht?
     retval = spsolve(H, rhs).reshape((curr_r, _n), order="F").T
+    # changed 15.4.21
+    # retval = spsolve(np.conj(H), rhs).reshape((curr_r, _n)).T
     # print("U solve: {}".format(time.time()-start))
     return retval
 
@@ -136,7 +143,9 @@ def updateV(_U, Xomega, curr_r, nnz, lmb=0.0, lap=None):
         H = scipy_block_diag(hlp, format="csr") + lmb*lap
     # print("V build H: {}".format(time.time()-start))
     # start = time.time()
+    # changed 15.4.21
     retval = spsolve(H, UY.ravel(order="F")).reshape((curr_r, _m), order="F")
+    # retval = spsolve(np.conj(H), UY.ravel(order="F")).reshape((curr_r, _m), order="F")
     # print("V solve: {}".format(time.time()-start))
     return retval
 
@@ -171,7 +180,8 @@ def lr_recon_single(Xomega, l_regu, r, T, tau, lapU, lapV, nnz_Z0_U, nnz_Z0_V, X
                 if Xtrue is given: resT {list}
     """
     # normalize the data
-    scl = np.std(Xomega, ddof=1)
+    Xomega_masked = np.ma.masked_equal(Xomega, 0)
+    scl = Xomega_masked.std(ddof=0)
     Xomega_scl = Xomega/scl
     # print("Do init")
     if iv_U is None or iv_V is None:

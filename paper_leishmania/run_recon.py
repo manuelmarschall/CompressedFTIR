@@ -36,7 +36,7 @@ from compressedftir.datareader import load_data_file
 
 
 def run2Dtest():
-    # Xomega_test.npz will return a scipy sparse matrix of subsampled data
+    # Xomega_test.npz will return a scipy sparse matrix of subsampled data (10% of original)
     filepath = "testdata/2d_data/Xomega_test.npz"
     X = load_data_file(filepath)       # Get data from file.
 

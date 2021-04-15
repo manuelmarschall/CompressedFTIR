@@ -377,7 +377,7 @@ def under_sampling(Nx, Ny, Nt, p, retries=10):
     return retval
 
 
-def subsample_3d_data(Xtrue, p):
+def subsample_3d_data(Xtrue, p, returnP=False):
     """
     Generates a sub-sampled data cube having uniformly chosen 100p % of data
 
@@ -391,6 +391,8 @@ def subsample_3d_data(Xtrue, p):
     assert len(Xtrue.shape) == 3
     P = under_sampling(*Xtrue.shape, p)
     Xomega = np.where(P == 1, Xtrue, 0)
+    if returnP:
+        return Xomega, P
     return Xomega
 
 

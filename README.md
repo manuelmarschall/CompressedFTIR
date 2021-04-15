@@ -84,13 +84,15 @@ Guides to install python under Linux, Windows and Mac can be found here: https:/
 	```
 	python -m pip install numpy scipy matplotlib
 	```
+We recommend using `PARDISO` as solver for large and sparse systems linear equations. The Python wrapper is available under https://github.com/haasad/PyPardisoProject and can be installed using `Anaconda`. 
 
-We recommend using `UMFPACK` as a linear algebra backend for sparse systems. The Python wrapper is available with
+Alternatively, the code calls `scipy.sparse.linalg.spsolve` which by default relies on `SUPERLU` and allows the (in our case faster) usage of `UMFPACK` as a linear algebra backend for sparse systems. The Python wrapper is available with
 	```
 	python -m pip install scikit-umfpack 
 	```
 
 Note that you need have `UMFPACK` installed, which is part of the `SuiteSparse` library: https://people.engr.tamu.edu/davis/suitesparse.html .
+
 ## Implementation details
 
 Some features and important files are mentioned in the following
