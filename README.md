@@ -49,23 +49,23 @@ To run the library one needs a python 3.6 installation with the python packages
 
 Simply clone this repository using 
 
-	```
+	
 	git clone https://github.com/manuelmarschall/CompressedFTIR.git
-	``` 
+	
 
 and navigate to the directory 
 
-	```
+	
 	cd CompressedFTIR
-	```
+	
 
 ### Installation using pip
 
 Install via the python package manager `pip` and the provided `setup.py` using
 
-	```
+	
 	pip install -e .
-	```
+	
 
 If you do not have Python installed, use e.g. the following guide.
 
