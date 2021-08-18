@@ -40,19 +40,36 @@ In this project we develop a regularized low-rank matrix recovery algorithm to a
 
 ## Installation 
 
-To run the library one needs a $\geq$ python 3.6 installation with the python packages
+To run the library one needs a python 3.6 installation with the python packages
 * numpy
 * scipy
 * matplotlib
 
+### Clone the repository 
+
+Simply clone this repository using 
+
+	```
+	git clone https://github.com/manuelmarschall/CompressedFTIR.git
+	``` 
+
+and navigate to the directory 
+
+	```
+	cd CompressedFTIR
+	```
+
 ### Installation using pip
 
-Install via the python package manager `pip` using
+Install via the python package manager `pip` and the provided `setup.py` using
 
-```
-  pip install compressedftir
-```
-### Basic Python installation 
+	```
+	pip install -e .
+	```
+
+If you do not have Python installed, use e.g. the following guide.
+
+## Basic Python installation 
 
 Guides to install python under Linux, Windows and Mac can be found here: https://realpython.com/installing-python/
 
