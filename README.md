@@ -44,6 +44,7 @@ To run the library one needs a python 3.6 installation with the python packages
 * numpy
 * scipy
 * matplotlib
+* json-tricks
 
 ### Clone the repository 
 
