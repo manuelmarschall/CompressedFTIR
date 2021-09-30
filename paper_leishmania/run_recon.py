@@ -99,6 +99,8 @@ def runLeishmania_FPA_test():
 
     # we substract an offset that interrupts the reconstruction.
     # TODO: save the offset and add it to the reconstruction afterwards
+    # WARNING: This is a preprocessing step based on the whole dataset, which increases the reconstruction quality.
+    # The paper does not use this step.
     bg = np.repeat(np.mean(Xtrue, axis=2), Xtrue.shape[2]).reshape(*Xtrue.shape)
     Xtrue = Xtrue - bg
 
